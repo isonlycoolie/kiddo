@@ -80,3 +80,97 @@ class Overlay {
 
 val LocalOverlay = staticCompositionLocalOf<Overlay> { error("OverlayHost is missing") }
 
+@Composable
+fun OverlayHost(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val overlay = remember { Overlay() }
+    CompositionLocalProvider(LocalOverlay provides overlay) {
+        Box(modifier.fillMaxSize()) {
+            content()
+            BackPress(enabled = overlay.open) { overlay.close() }
+            overlay.toast?.let { text ->
+                Toast(
+                    text,
+                    overlay.toastKey,
+                    onDone = { overlay.toast = null },
+                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 96.dp),
+                )
+            }
+            Sheet(overlay.open, overlay::close, title = overlay.title) { overlay.content?.invoke(this) }
+        }
+    }
+}
+
+// Sheet: rises over a dim, leaves faster than it came, and can be dragged down to close. Our own, so it matches the
+// design exactly.
+@Composable
+fun Sheet(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = Kiddo.colors
+    val reduced = Kiddo.reducedMotion
+    val drag = rememberSheetDrag(onDismiss)
+    LaunchedEffect(visible) { if (visible) drag.reset() }
+    Box(modifier.fillMaxSize()) {
+        AnimatedVisibility(
+            visible,
+            enter = fadeIn(if (reduced) KiddoMotion.reduced() else KiddoMotion.tween(KiddoMotion.QUICK, KiddoMotion.Ease)),
+            exit = fadeOut(KiddoMotion.tween(KiddoMotion.QUICK, KiddoMotion.Ease)),
+        ) {
+            Box(
+                Modifier.fillMaxSize().background(Color.Black.copy(alpha = DIM))
+                    .pressable(onDismiss, label = stringResource(Res.string.action_close)),
+            )
+        }
+        AnimatedVisibility(
+            visible,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = if (reduced) {
+                fadeIn(KiddoMotion.reduced())
+            } else {
+                slideInVertically(KiddoMotion.tween(KiddoMotion.SHEET, KiddoMotion.Sheet)) { it }
+            },
+            exit = if (reduced) {
+                fadeOut(KiddoMotion.reduced())
+            } else {
+                slideOutVertically(KiddoMotion.tween(KiddoMotion.QUICK, KiddoMotion.Accelerate)) { it }
+            },
+        ) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .offset { IntOffset(0, drag.offset.roundToInt()) }
+                    .onSizeChanged { drag.height = it.height.toFloat() }
+                    .nestedScroll(drag)
+                    .background(colors.sheet, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .heightIn(max = 620.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 10.dp, bottom = 24.dp),
+            ) {
+                Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 4.dp).background(colors.faint, CircleShape))
+                if (title != null) {
+                    BasicText(
+                        title,
+                        style = Kiddo.type.nav.copy(color = colors.fg, textAlign = TextAlign.Center),
+                        modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                    )
+                }
+                Column(
+                    Modifier.padding(horizontal = 16.dp).padding(top = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = content,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SheetGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kiddo.colors.sheetCard), content = content)
+}
+
