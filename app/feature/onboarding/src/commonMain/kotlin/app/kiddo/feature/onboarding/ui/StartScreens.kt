@@ -96,3 +96,33 @@ private fun Promise(glyph: KiddoGlyph, title: String, body: String) {
     }
 }
 
+@Composable
+fun LockSetupScreen(onTurnOn: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Modifier) {
+    KiddoScreen(
+        modifier,
+        footer = {
+            Primary(stringResource(Res.string.lock_turn_on), onTurnOn, glyph = KiddoGlyph.Finger)
+            TextAction(stringResource(Res.string.lock_not_now), onSkip)
+        },
+    ) {
+        Column(
+            Modifier.weight(1f).fillMaxWidth().padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Box(Modifier.size(80.dp).background(Kiddo.colors.well, CircleShape), contentAlignment = Alignment.Center) {
+                KiddoIcon(KiddoGlyph.Finger, null, size = 38.dp, tint = Kiddo.colors.ok)
+            }
+            BasicText(
+                stringResource(Res.string.lock_title),
+                style = Kiddo.type.title.copy(color = Kiddo.colors.fg),
+                modifier = Modifier.padding(top = 22.dp),
+            )
+            BasicText(
+                stringResource(if (platformFeel.appleNames) Res.string.lock_body_apple else Res.string.lock_body),
+                style = Kiddo.type.note.copy(color = Kiddo.colors.muted, textAlign = TextAlign.Center),
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+    }
+}
