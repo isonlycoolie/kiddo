@@ -75,9 +75,11 @@ Kiddo holds the keys to your email and your AI account, so security is the desig
 | State | AndroidX ViewModel with `StateFlow` |
 | Dependency injection | Koin |
 | Network | Ktor client with server-sent events for streaming answers |
-| Local data | SQLDelight, every personal value and file sealed with a hardware-held key (AES-GCM) |
+| Local data | SQLDelight on SQLCipher (Android), and every personal value and file also sealed with a hardware-held key (AES-GCM) |
 | Secrets | Android Keystore (StrongBox when present); iOS Keychain with keys wrapped by the Secure Enclave |
-| Background | JobScheduler on Android; app refresh and scheduled local notifications on iOS |
+| Background | WorkManager on Android; app refresh and scheduled local notifications on iOS |
+| Backups | Argon2id (libsodium) passphrase keys and AES-256-GCM, one file format on both phones |
+| Web pages | Ksoup turns job pages into readable text |
 | Quality | Detekt with Compose rules, ktlint through Spotless |
 | Tests | kotlin.test, Turbine, Compose UI tests, Roborazzi screenshot tests |
 
