@@ -95,3 +95,9 @@ private fun u16(b: ByteArray, at: Int): Int = (b[at].toInt() and 0xFF) or ((b[at
 
 private fun u32(b: ByteArray, at: Int): Long = u16(b, at).toLong() or (u16(b, at + 2).toLong() shl 16)
 
+private const val END_SIG = 0x06054b50L
+private const val ENTRY_SIG = 0x02014b50L
+private const val END_SIZE = 22
+private const val MAX_COMMENT = 65_535
+private const val STORED = 0
+private const val DEFLATED = 8
