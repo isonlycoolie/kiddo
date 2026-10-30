@@ -157,3 +157,97 @@ class ChatViewModel(
         viewModelScope.launch { onSaved(builder.save(messageId)) }
     }
 
+    suspend fun renderCv(card: CvBuiltCard): ByteArray = builder.render(card.cv)
+
+    fun sendDraft(messageId: String, onDone: (Failure?) -> Unit) {
+        viewModelScope.launch { onDone(outbox.send(messageId)) }
+    }
+
+    fun markApplied(messageId: String) {
+        viewModelScope.launch { outbox.markAppliedOnSite(messageId) }
+    }
+
+    private suspend fun working(chatId: String, block: suspend () -> Unit) {
+        live.value = Live(chatId = chatId, running = true)
+        try {
+            block()
+        } finally {
+            live.update { it.copy(running = false) }
+        }
+    }
+
+    fun retry() {
+        val account = state.value.active ?: return
+        val last = state.value.messages.lastOrNull() ?: return
+        if (last.role != ChatRole.Assistant || live.value.running) return
+        run = viewModelScope.launch {
+            live.value = Live(last.chatId, last.id, "", running = true)
+            answer(account, last.chatId, last.id)
+        }
+    }
+
+    fun stop() {
+        run?.cancel()
+        run = null
+        live.update { it.copy(running = false, streamingId = null) }
+    }
+
+    private suspend fun answer(account: ProviderAccount, chatId: String, answerId: String) {
+        val history = chats.history(chatId).filter { it.id != answerId && it.text.isNotBlank() }
+        val target = AiTarget(account.provider, account.baseUrl, account.model, vault.secrets.get(account.keyRef).orEmpty())
+        var failure: Failure? = null
+        try {
+            ai.stream(target, prompt.system(), history.map { AiTurn(it.role, it.text) }).collect { event ->
+                when (event) {
+                    is AiEvent.Text -> live.update { it.copy(streamed = it.streamed + event.delta) }
+                    is AiEvent.Usage -> providers.addTokens(account.id, event.input + event.output)
+                    is AiEvent.Failed -> failure = event.reason
+                }
+            }
+        } finally {
+            val text = live.value.streamed
+            chats.update(answerId, text, failed = failure != null || text.isBlank())
+            live.update { it.copy(running = false, streamingId = null, streamed = "") }
+        }
+    }
+
+    private companion object {
+        const val RECENT = 8
+        const val STOP_AFTER = 5_000L
+    }
+}
+
+// Builds the system prompt from the workspace, profile and CVs, so the model writes only from what's true.
+class PromptBuilder(private val workspaces: WorkspaceStore, private val cvs: CvStore) {
+    suspend fun system(): String {
+        val ws = workspaces.current() ?: return ""
+        val profile = workspaces.profile.first()
+        val cvList = cvs.cvs(ws.id).first()
+        val details = listOf(
+            "Name: ${ws.name}",
+            "Email: ${ws.email}",
+            "Headline: ${profile.headline}",
+            "Phone: ${profile.phone}",
+            "Portfolio: ${profile.portfolio}",
+            "LinkedIn: ${profile.linkedin}",
+            "Tone: ${profile.tone.name}",
+        ).filterNot { it.endsWith(": ") }.joinToString("\n")
+        val cvText = if (cvList.isEmpty()) {
+            NO_CV
+        } else {
+            cvList.joinToString("\n\n") { cv ->
+                val body = cv.text?.take(CV_LIMIT) ?: NO_TEXT
+                "<cv name=\"${cv.name}\" default=\"${cv.isDefault}\">\n$body\n</cv>"
+            }
+        }
+        val today = kotlin.time.Clock.System.now().toString().take(DATE)
+        return app.kiddo.core.ai.KiddoPrompt.system(ws.name, today, details, cvText)
+    }
+
+    private companion object {
+        const val CV_LIMIT = 6_000
+        const val DATE = 10
+        const val NO_CV = "No CV added yet."
+        const val NO_TEXT = "(This CV's text could not be read on this phone.)"
+    }
+}
