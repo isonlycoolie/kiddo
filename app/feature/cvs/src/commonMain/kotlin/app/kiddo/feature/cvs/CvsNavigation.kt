@@ -95,3 +95,9 @@ private fun CvSheetRow(label: org.jetbrains.compose.resources.StringResource, gl
     SheetRow(stringResource(label), onClick, glyph = glyph, danger = danger)
 }
 
+@Composable
+private fun RenameForm(current: String, onSave: (String) -> Unit) {
+    var name by remember { mutableStateOf(current) }
+    Field(name, { name = it }, label = stringResource(Res.string.cv_name))
+    Primary(stringResource(Res.string.action_save), { onSave(name) }, enabled = name.isNotBlank())
+}
