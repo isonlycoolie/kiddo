@@ -63,3 +63,44 @@ class CvsViewModel(private val workspaces: WorkspaceStore, private val cvs: CvSt
     }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
+class CvViewModel(private val workspaces: WorkspaceStore, private val cvs: CvStore) : ViewModel() {
+    private val id = MutableStateFlow<String?>(null)
+    private val bytes = MutableStateFlow<ByteArray?>(null)
+
+    val cv: StateFlow<Cv?> = workspaces.workspace.filterNotNull()
+        .flatMapLatest { ws -> cvs.cvs(ws.id) }
+        .flatMapLatest { list -> id.map { wanted -> list.firstOrNull { it.id == wanted } } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_AFTER), null)
+
+    val file: StateFlow<ByteArray?> = bytes
+
+    fun open(cvId: String) {
+        if (id.value == cvId) return
+        id.value = cvId
+        viewModelScope.launch { bytes.value = cvs.bytes(cvId) }
+    }
+
+    fun rename(name: String) {
+        val cvId = id.value ?: return
+        if (name.isBlank()) return
+        viewModelScope.launch { cvs.rename(cvId, name.trim()) }
+    }
+
+    fun makeDefault() {
+        val cvId = id.value ?: return
+        viewModelScope.launch { workspaces.current()?.let { cvs.makeDefault(it.id, cvId) } }
+    }
+
+    fun delete(onDone: () -> Unit) {
+        val cvId = id.value ?: return
+        viewModelScope.launch {
+            cvs.delete(cvId)
+            onDone()
+        }
+    }
+
+    private companion object {
+        const val STOP_AFTER = 5_000L
+    }
+}
