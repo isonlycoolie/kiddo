@@ -91,3 +91,22 @@ private suspend fun <T> call(block: suspend () -> Outcome<T>): Outcome<T> {
     return if (failure != null) Outcome.Failed(failure) else result
 }
 
+// Network trouble becomes "can't reach"; cancellation keeps cancelling.
+private suspend fun runCatchingIo(block: suspend () -> Unit): Failure? = try {
+    block()
+    null
+} catch (e: CancellationException) {
+    throw e
+} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+    if (e is kotlinx.serialization.SerializationException) Failure.Unknown else Failure.CantReach
+}
+
+internal fun JsonElement?.obj(): JsonObject? = this as? JsonObject
+
+internal fun JsonElement?.arr(): JsonArray? = this as? JsonArray
+
+internal fun JsonElement?.str(): String? = (this as? JsonPrimitive)?.contentOrNull
+
+internal fun JsonElement?.long(): Long? = (this as? JsonPrimitive)?.longOrNull
+
+internal fun String.trimSlash() = trimEnd('/')
