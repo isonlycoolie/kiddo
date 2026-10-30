@@ -89,3 +89,33 @@ fun NavGraphBuilder.backupScreens(nav: NavController) {
     }
 }
 
+@Composable
+fun BackupScreen(busy: Boolean, onBack: () -> Unit, onExport: (String, Boolean) -> Unit, onRestore: () -> Unit, modifier: Modifier = Modifier) {
+    var keys by rememberSaveable { mutableStateOf(false) }
+    var passphrase by remember { mutableStateOf("") }
+    KiddoScreen(
+        modifier,
+        header = { NavBar(onBack = onBack) },
+        footer = {
+            Primary(stringResource(Res.string.backup_export), { onExport(passphrase, keys) }, enabled = passphrase.length >= MIN_PASSPHRASE, busy = busy, glyph = KiddoGlyph.Download)
+            TextAction(stringResource(Res.string.backup_restore), onRestore)
+        },
+    ) {
+        Title(stringResource(Res.string.backup_title), sub = stringResource(Res.string.backup_sub))
+        val keysLabel = stringResource(Res.string.backup_keys)
+        Group(note = stringResource(Res.string.backup_keys_note)) {
+            ListRow(keysLabel, trailing = { Toggle(keys, { keys = it }, keysLabel) })
+        }
+        Field(passphrase, { passphrase = it }, label = stringResource(Res.string.backup_passphrase), kind = FieldKind.Secret, note = stringResource(Res.string.backup_passphrase_note))
+    }
+}
+
+@Composable
+private fun RestoreForm(onRestore: (String) -> Unit) {
+    var passphrase by remember { mutableStateOf("") }
+    SheetText(stringResource(Res.string.backup_restore_body))
+    Field(passphrase, { passphrase = it }, label = stringResource(Res.string.backup_passphrase), kind = FieldKind.Secret)
+    Primary(stringResource(Res.string.backup_restore_go), { onRestore(passphrase) }, enabled = passphrase.isNotEmpty())
+}
+
+private const val MIN_PASSPHRASE = 8
