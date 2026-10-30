@@ -86,3 +86,31 @@ private fun NavOptionsBuilder.clearAll(nav: NavController) {
 private typealias Enter = AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition
 private typealias Exit = AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
 
+// Push slides in from the right with a fade, back from the left; the screen underneath fades. Reduced motion fades.
+// Where Back is an edge swipe (`followsFinger`), the leaving screen slides off under the finger as iOS's does.
+class ScreenTransitions(reduced: Boolean, followsFinger: Boolean = false) {
+    val enter: Enter = {
+        if (reduced) {
+            fadeIn(KiddoMotion.reduced())
+        } else {
+            slideInHorizontally(KiddoMotion.tween(KiddoMotion.PUSH, KiddoMotion.Standard)) { (it * KiddoMotion.PUSH_DISTANCE).toInt() } +
+                fadeIn(KiddoMotion.tween(KiddoMotion.PUSH, KiddoMotion.Standard))
+        }
+    }
+    val popEnter: Enter = {
+        if (reduced) {
+            fadeIn(KiddoMotion.reduced())
+        } else {
+            slideInHorizontally(KiddoMotion.tween(KiddoMotion.PUSH, KiddoMotion.Standard)) { -(it * KiddoMotion.BACK_DISTANCE).toInt() } +
+                fadeIn(KiddoMotion.tween(KiddoMotion.PUSH, KiddoMotion.Standard))
+        }
+    }
+    val exit: Exit = { fadeOut(KiddoMotion.tween(if (reduced) KiddoMotion.REDUCED else KiddoMotion.PUSH, KiddoMotion.Standard)) }
+    val popExit: Exit = {
+        if (followsFinger && !reduced) {
+            slideOutHorizontally(KiddoMotion.tween(KiddoMotion.PUSH, KiddoMotion.Standard)) { it }
+        } else {
+            exit(this)
+        }
+    }
+}
