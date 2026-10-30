@@ -90,3 +90,40 @@ class AndroidNotifier(private val context: Context) : Notifier {
     }
 }
 
+@Composable
+actual fun rememberNotificationAsk(): () -> Unit {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    return remember(context) {
+        {
+            val needed = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            if (needed) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+}
+
+private const val MAX_PAGE = 100_000
+
+@Composable
+actual fun rememberFileSaver(onDone: (Boolean) -> Unit): (fileName: String, bytes: ByteArray) -> Unit {
+    val context = LocalContext.current
+    val pending = remember { arrayOfNulls<ByteArray>(1) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        val bytes = pending[0]
+        pending[0] = null
+        if (uri == null || bytes == null) return@rememberLauncherForActivityResult onDone(false)
+        val written = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } != null }.getOrDefault(false)
+        onDone(written)
+    }
+    return remember(launcher) { { name, bytes -> pending[0] = bytes; launcher.launch(name) } }
+}
+
+@Composable
+actual fun rememberFileOpener(onFile: (ByteArray?) -> Unit): () -> Unit {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        onFile(uri?.let { runCatching { context.contentResolver.openInputStream(it)?.use { s -> s.readBytes() } }.getOrNull() })
+    }
+    return remember(launcher) { { launcher.launch(arrayOf("*/*")) } }
+}
