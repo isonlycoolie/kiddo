@@ -92,3 +92,60 @@ private fun blinkFrames() = keyframes {
     1f at KiddoMotion.BLINK_EVERY
 }
 
+// A glance right, then left, then back.
+private fun lookFrames() = keyframes {
+    durationMillis = KiddoMotion.LOOK_EVERY
+    0f at 0
+    0f at (KiddoMotion.LOOK_EVERY * 0.18f).toInt()
+    1.6f at (KiddoMotion.LOOK_EVERY * 0.24f).toInt()
+    1.6f at (KiddoMotion.LOOK_EVERY * 0.42f).toInt()
+    0f at (KiddoMotion.LOOK_EVERY * 0.5f).toInt()
+    -1.6f at (KiddoMotion.LOOK_EVERY * 0.58f).toInt()
+    -1.6f at (KiddoMotion.LOOK_EVERY * 0.72f).toInt()
+    0f at (KiddoMotion.LOOK_EVERY * 0.8f).toInt()
+}
+
+@Composable
+fun Wordmark(modifier: Modifier = Modifier, style: TextStyle = Kiddo.type.wordmark) {
+    BasicText("kiddo", modifier, style = style.copy(color = Kiddo.colors.fg))
+}
+
+// Glow: three soft blobs of the Kiddo glow drifting slowly behind one of Kiddo's own moments. Each blob fades out
+// gradually and the whole layer is blurred (Android 12 and up), so it reads as light, never as shapes.
+@Composable
+fun Glow(modifier: Modifier = Modifier, size: Dp = 260.dp) {
+    val c = Kiddo.colors
+    val drift by rememberInfiniteTransition(label = "glow").animateFloat(
+        0f,
+        1f,
+        infiniteRepeatable(KiddoMotion.tween(KiddoMotion.GLOW_DRIFT, LinearEasing), RepeatMode.Reverse),
+        label = "drift",
+    )
+    val t = if (Kiddo.reducedMotion) 0f else drift
+    Canvas(modifier.size(size)) {
+        val w = this.size.width
+        val blobs = listOf(
+            Triple(c.glowA, Offset(w * (0.32f + 0.06f * t), w * (0.42f - 0.05f * t)), w * 0.36f),
+            Triple(c.glowB, Offset(w * (0.7f - 0.05f * t), w * (0.3f + 0.04f * t)), w * 0.32f),
+            Triple(c.glowC, Offset(w * (0.52f + 0.04f * t), w * (0.72f - 0.04f * t)), w * 0.32f),
+        )
+        blobs.forEach { (color, center, radius) ->
+            val a = c.glowAlpha
+            drawCircle(
+                Brush.radialGradient(
+                    0f to color.copy(alpha = a),
+                    0.45f to color.copy(alpha = a * 0.55f),
+                    1f to Color.Transparent,
+                    center = center,
+                    radius = radius,
+                ),
+                radius,
+                center,
+            )
+        }
+    }
+}
+
+private const val GRID = 32f
+private const val SOFT = 0.72f
+private const val BLUR = 0.12f
