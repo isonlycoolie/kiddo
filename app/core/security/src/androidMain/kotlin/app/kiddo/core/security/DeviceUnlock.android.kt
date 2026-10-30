@@ -1,68 +1,65 @@
 package app.kiddo.core.security
 
-import android.app.Activity
-import android.app.KeyguardManager
 import android.content.Context
-import android.hardware.biometrics.BiometricManager
-import android.hardware.biometrics.BiometricPrompt
+import android.content.ContextWrapper
 import android.os.Build
-import android.os.CancellationSignal
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+import androidx.biometric.BiometricPrompt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 
-// The system's own prompt, no extra library: BiometricPrompt with the phone PIN as fallback on Android 10 and up,
-// the keyguard's confirm-credential screen before that.
+// AndroidX BiometricPrompt: fingerprint or face, with the phone PIN as fallback, on every Android Kiddo supports.
 @Composable
 actual fun rememberDeviceUnlock(title: String, onResult: (UnlockResult) -> Unit): () -> Unit {
     val context = LocalContext.current
     val latest by rememberUpdatedState(onResult)
-    val keyguard = remember(context) { context.getSystemService(KeyguardManager::class.java) }
-    val confirm = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        latest(if (it.resultCode == Activity.RESULT_OK) UnlockResult.Unlocked else UnlockResult.Cancelled)
-    }
     return remember(context, title) {
         {
+            val activity = context.findActivity()
+            val manager = androidx.biometric.BiometricManager.from(context)
             when {
-                keyguard?.isDeviceSecure != true -> latest(UnlockResult.NoDeviceLock)
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> prompt(context, title) { latest(it) }
-                else -> {
-                    @Suppress("DEPRECATION")
-                    val intent = keyguard.createConfirmDeviceCredentialIntent(title, null)
-                    if (intent == null) latest(UnlockResult.NoDeviceLock) else confirm.launch(intent)
-                }
+                activity == null -> latest(UnlockResult.Failed)
+                manager.canAuthenticate(AUTHENTICATORS) != androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS ->
+                    latest(UnlockResult.NoDeviceLock)
+                else -> prompt(activity, title) { latest(it) }
             }
         }
     }
 }
 
-private fun prompt(context: Context, title: String, onResult: (UnlockResult) -> Unit) {
-    val builder = BiometricPrompt.Builder(context).setTitle(title)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        builder.setAllowedAuthenticators(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL,
-        )
-    } else {
-        @Suppress("DEPRECATION")
-        builder.setDeviceCredentialAllowed(true)
-    }
-    builder.build().authenticate(
-        CancellationSignal(),
-        context.mainExecutor,
-        object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
-                onResult(UnlockResult.Unlocked)
-            }
+private fun prompt(activity: FragmentActivity, title: String, onResult: (UnlockResult) -> Unit) {
+    val callback = object : BiometricPrompt.AuthenticationCallback() {
+        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+            onResult(UnlockResult.Unlocked)
+        }
 
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
-                val cancelled = errorCode == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED ||
-                    errorCode == BiometricPrompt.BIOMETRIC_ERROR_CANCELED
-                onResult(if (cancelled) UnlockResult.Cancelled else UnlockResult.Failed)
-            }
-        },
-    )
+        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+            val cancelled = errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
+                errorCode == BiometricPrompt.ERROR_CANCELED ||
+                errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON
+            onResult(if (cancelled) UnlockResult.Cancelled else UnlockResult.Failed)
+        }
+    }
+    val info = BiometricPrompt.PromptInfo.Builder()
+        .setTitle(title)
+        .setAllowedAuthenticators(AUTHENTICATORS)
+        .build()
+    BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback).authenticate(info)
 }
+
+private tailrec fun Context.findActivity(): FragmentActivity? = when (this) {
+    is FragmentActivity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+// Strong biometrics with the PIN fallback; Android 9 and 10 only allow that fallback next to the weak class.
+private val AUTHENTICATORS =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) BIOMETRIC_STRONG or DEVICE_CREDENTIAL else BIOMETRIC_WEAK or DEVICE_CREDENTIAL

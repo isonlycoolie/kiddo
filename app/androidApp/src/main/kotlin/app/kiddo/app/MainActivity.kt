@@ -2,12 +2,13 @@ package app.kiddo.app
 
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.fragment.app.FragmentActivity
 
-// The only activity; every screen is a Compose destination in KiddoApp.
-class MainActivity : ComponentActivity() {
+// The only activity; every screen is a Compose destination in KiddoApp. A FragmentActivity so the AndroidX
+// biometric prompt can attach to it.
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
