@@ -145,3 +145,13 @@ fun NavGraphBuilder.applicationsScreens(nav: NavController) {
                 onMax = {
                     overlay.sheet(maxTitle) {
                         SheetGroup {
+                            (1..3).forEach { n ->
+                                SheetRow(n.toString(), { vm.updateSettings { it.copy(followUpMax = n) }.also { overlay.close() } }, picked = n == prefs.followUpMax)
+                            }
+                        }
+                    }
+                },
+            ),
+        )
+    }
+}
