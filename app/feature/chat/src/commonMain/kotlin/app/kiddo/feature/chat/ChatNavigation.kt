@@ -95,3 +95,89 @@ fun NavGraphBuilder.chatScreens(nav: NavController) {
     }
 }
 
+@Composable
+private fun HomeRoute(nav: NavController, entry: NavBackStackEntry) {
+    val route = entry.toRoute<Route.Home>()
+    val viewModel: ChatViewModel = koinViewModel()
+    val cvTitle = stringResource(Res.string.starter_cv)
+    LaunchedEffect(route.chatId) { viewModel.open(route.chatId) }
+    LaunchedEffect(route.improveCv) { route.improveCv?.let { viewModel.improveCv(it, cvTitle) } }
+    // The Kiddo browser hands back what the user saw; read it once.
+    val pageText by entry.savedStateHandle.getStateFlow<String?>(BROWSER_TEXT, null).collectAsStateWithLifecycle()
+    LaunchedEffect(pageText) {
+        val text = pageText ?: return@LaunchedEffect
+        viewModel.fromBrowser(entry.savedStateHandle.get<String>(BROWSER_URL).orEmpty(), text)
+        entry.savedStateHandle.remove<String>(BROWSER_TEXT)
+    }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    var draft by rememberSaveable { mutableStateOf(route.draft.orEmpty()) }
+    var menu by rememberSaveable { mutableStateOf(false) }
+    BackPress(enabled = menu) { menu = false }
+    val overlay = LocalOverlay.current
+    val uri = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
+    val askNotifications = rememberNotificationAsk()
+    val modelTitle = stringResource(Res.string.chat_models)
+    val sendTitle = stringResource(Res.string.send_title)
+    val pasteText = stringResource(Res.string.blocked_paste_text)
+    val toast: (StringResource) -> Unit = { res -> scope.launch { overlay.toast(getString(res)) } }
+    HomeScreen(
+        state,
+        draft,
+        menu,
+        HomeActions(
+            onMenu = { menu = it },
+            onModel = { overlay.accountSheet(modelTitle, state.accounts, state.active?.id, viewModel::pickModel) },
+            onProfile = { nav.navigate(Route.Profile) },
+            onText = { draft = it },
+            onSend = {
+                viewModel.send(draft)
+                draft = ""
+            },
+            onStop = viewModel::stop,
+            onRetry = viewModel::retry,
+            onSetupAi = { nav.navigate(Route.AiAdd()) },
+            onSetupMail = { nav.navigate(Route.Email) },
+            onSetupCv = { nav.navigate(Route.Cvs) },
+            onImproveCv = { viewModel.improveCv(null, cvTitle) },
+            menu = MenuActions(
+                onNewChat = { viewModel.open(null) },
+                onApplications = { nav.navigate(Route.Applications) },
+                onCvs = { nav.navigate(Route.Cvs) },
+                onUpdates = { nav.navigate(Route.Updates) },
+                onHistory = { nav.navigate(Route.History) },
+                onChat = viewModel::open,
+                onProfile = { nav.navigate(Route.Profile) },
+                onSettings = { nav.navigate(Route.Settings) },
+            ),
+            cards = CardActions(
+                onEditDraft = { nav.navigate(Route.Draft(it)) },
+                onReviewDraft = { id, card ->
+                    val mail = state.mail
+                    if (mail == null) {
+                        toast(Res.string.agent_no_mail)
+                    } else {
+                        overlay.sendSheet(sendTitle, card, mail, state.followUpDays) { done ->
+                            viewModel.sendDraft(id) { failure ->
+                                done()
+                                overlay.close()
+                                if (failure != null) toast(failure.message()) else askNotifications()
+                            }
+                        }
+                    }
+                },
+                onMarkApplied = viewModel::markApplied,
+                onOpenSite = { uri.openUri(it) },
+                onViewApplication = { nav.navigate(Route.Application(it)) },
+                onOpenBrowser = { nav.navigate(Route.Browser(it)) },
+                onPaste = { draft = pasteText },
+                onSaveCv = { id -> viewModel.saveCv(id) { saved -> if (saved != null) toast(Res.string.cvcard_saved) } },
+                onOpenCv = { nav.navigate(Route.Cv(it)) },
+                renderCv = viewModel::renderCv,
+            ),
+        ),
+    )
+}
+
+private fun Overlay.sendSheet(title: String, draft: DraftCard, mail: MailAccount, days: Int, onSend: (onDone: () -> Unit) -> Unit) =
+    sheet(title) { SendSheet(draft, mail, days, onSend) }
