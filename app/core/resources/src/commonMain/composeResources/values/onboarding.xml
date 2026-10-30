@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="welcome_title">Apply for jobs from a chat.</string>
+    <string name="welcome_tell">Tell Kiddo about a job</string>
+    <string name="welcome_tell_body">Paste a link, an email or the job post.</string>
+    <string name="welcome_approve">Approve what it writes</string>
+    <string name="welcome_approve_body">A clean email and your best CV.</string>
+    <string name="welcome_send">It sends and follows up</string>
+    <string name="welcome_send_body">From your email, once you say yes.</string>
+    <string name="welcome_promise">No account. No server. Everything stays on this phone.</string>
+    <string name="welcome_start">Get started</string>
+    <string name="workspace_title">Create your workspace</string>
+    <string name="workspace_sub">Kiddo uses your name and email when it writes to employers. You can change them later.</string>
+    <string name="workspace_name">Your name</string>
+    <string name="workspace_email">Email you apply from</string>
+    <string name="workspace_email_bad">That doesn\'t look like an email address.</string>
+    <string name="workspace_create">Create workspace</string>
+    <string name="lock_title">Lock Kiddo</string>
+    <string name="lock_body">Your email and AI keys live here. Open Kiddo with your fingerprint, face or phone PIN.</string>
+    <string name="lock_body_apple">Your email and AI keys live here. Open Kiddo with Face ID, Touch ID or your passcode.</string>
+    <string name="lock_turn_on">Turn on app lock</string>
+    <string name="lock_not_now">Not now</string>
+    <string name="lock_needs_screen_lock">Set a screen lock on your phone first.</string>
+    <string name="lock_needs_passcode">Set a passcode on your iPhone first.</string>
+    <string name="lock_prompt">Unlock Kiddo</string>
+    <string name="locked">Kiddo is locked</string>
+    <string name="unlock">Unlock</string>
+</resources>

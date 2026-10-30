@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_title">AI models</string>
+    <string name="ai_connected">Connected</string>
+    <string name="ai_tokens">%1$s · %2$s tokens</string>
+    <string name="ai_use">Use</string>
+    <string name="ai_use_chat">Chat</string>
+    <string name="ai_add_provider">Add a provider</string>
+    <string name="ai_privacy">Your provider sees only what you write here, your profile and your CVs.</string>
+    <string name="ai_empty_title">No AI model yet</string>
+    <string name="ai_empty_body">Use your own key from any provider. You pay them directly.</string>
+    <string name="ai_add_title">Add an AI model</string>
+    <string name="ai_edit_title">Edit AI model</string>
+    <string name="ai_add_sub">Use your own key. You pay your provider directly.</string>
+    <string name="ai_provider">Provider</string>
+    <string name="ai_key">API key</string>
+    <string name="ai_key_saved">Saved. Leave empty to keep it.</string>
+    <string name="ai_key_from">Get one at %1$s</string>
+    <string name="ai_address">Address</string>
+    <string name="ai_address_note">Local models on your network can use http.</string>
+    <string name="ai_model">Model</string>
+    <string name="ai_model_pick">Test the key to see its models</string>
+    <string name="ai_test_save">Test and save</string>
+    <string name="ai_sealed">Sealed on this phone, sent only to %1$s.</string>
+    <string name="ai_remove">Remove this provider</string>
+    <string name="ai_choose_model">Model</string>
+    <string name="ai_other_sub">Any OpenAI-compatible address</string>
+    <string name="ai_ollama_sub">Models on your own computer</string>
+    <string name="ai_openrouter_sub">Hundreds of models</string>
+</resources>
