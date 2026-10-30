@@ -90,3 +90,33 @@ class InboxWatcher(
             }
     }
 
+    // The next moment a follow-up falls due and for whom, so phones that check rarely in the background can say so on
+    // time. Weekends move to Monday when the user skips them.
+    suspend fun nextFollowUp(): Pair<Long, String>? {
+        val ws = workspaces.current() ?: return null
+        val s = settings.settings(ws.id).first()
+        if (!s.followUps) return null
+        val now = clock.now()
+        val next = applications.all(ws.id)
+            .filter { it.status == AppStatus.Sent && it.followUps < s.followUpMax }
+            .map { it to it.sentAt + s.followUpDays * DAY * (it.followUps + 1) }
+            .filter { (_, at) -> at > now }
+            .minByOrNull { (_, at) -> at } ?: return null
+        var at = next.second
+        while (s.skipWeekends && isWeekend(at)) at += DAY
+        return at to next.first.company.ifBlank { next.first.to }
+    }
+
+    // One "couldn't check" a day is enough.
+    private suspend fun failedOnce(workspaceId: String) {
+        val recent = notices.all(workspaceId).any { it.kind == NoticeKind.CheckFailed && clock.now() - it.createdAt < DAY }
+        if (!recent) notices.add(workspaceId, NoticeKind.CheckFailed, null, getString(Res.string.notice_failed))
+    }
+
+    private companion object {
+        const val DAY = 86_400_000L
+        const val LOOK_BACK = 30 * DAY
+        const val SNIPPET = 160
+        val PERSONAL = setOf("gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com", "live.com")
+    }
+}
