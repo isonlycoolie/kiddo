@@ -15,6 +15,8 @@ kotlin {
     }
     sourceSets.androidMain.dependencies {
         implementation(libs.sqldelight.android.driver)
+        implementation(libs.sqlcipher.android)
+        implementation(libs.androidx.sqlite)
     }
     if (HostManager.hostIsMac) {
         sourceSets.iosMain.dependencies { implementation(libs.sqldelight.native.driver) }

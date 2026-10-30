@@ -27,7 +27,7 @@ import kotlin.system.exitProcess
 // What only Android provides to the shared app: the Keystore vault, storage, the HTTP engine, CVs, notifications.
 val androidPlatform = module {
     single<Vault> { KeystoreVault(androidContext()) }
-    single<SqlDriver> { androidDriver(androidContext()) }
+    single<SqlDriver> { androidDriver(androidContext(), get<Vault>().secrets) }
     single<FileVault> { AndroidFileVault(androidContext()) }
     single<CoroutineContext> { Dispatchers.IO }
     single<HttpClientEngine> { OkHttp.create() }
