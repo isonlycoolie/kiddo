@@ -80,3 +80,25 @@ class ApplicationsViewModel(
     }
 }
 
+// Sends a due follow-up in the same thread as the application, then counts it and clears the update.
+class FollowUpSender(
+    private val workspaces: WorkspaceStore,
+    private val applications: ApplicationStore,
+    private val notices: NoticeStore,
+    private val mail: MailStore,
+    private val transport: MailTransport,
+    private val vault: Vault,
+) {
+    suspend fun send(app: Application, subject: String, body: String): Failure? {
+        val ws = workspaces.current() ?: return Failure.Unknown
+        val account = mail.accounts(ws.id).first().firstOrNull() ?: return Failure.BadInput
+        val outgoing = OutgoingMail(account.address, ws.name, listOf(app.to), subject, body, inReplyTo = app.messageId)
+        val sent = transport.send(account, vault.secrets.get(account.secretRef).orEmpty(), outgoing)
+        if (sent is Outcome.Failed) return sent.reason
+        applications.countFollowUp(app.id)
+        notices.clear(app.id, NoticeKind.FollowUpDue)
+        return null
+    }
+
+    suspend fun signOff(): String = workspaces.current()?.name.orEmpty()
+}
