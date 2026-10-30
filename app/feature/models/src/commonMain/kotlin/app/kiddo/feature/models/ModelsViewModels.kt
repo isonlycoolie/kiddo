@@ -143,3 +143,18 @@ class AddViewModel(
         settings.update(ws.id) { if (it.chatModel == null) it.copy(chatModel = id) else it }
     }
 
+    // A sensible first model when the user didn't type one: the provider's everyday model if listed.
+    private fun pickDefault(provider: AiProvider, models: List<String>): String {
+        val hints = when (provider) {
+            AiProvider.Anthropic -> listOf("sonnet")
+            AiProvider.OpenAi -> listOf("gpt-4o-mini", "gpt")
+            AiProvider.Gemini -> listOf("flash")
+            AiProvider.DeepSeek -> listOf("deepseek-chat")
+            else -> emptyList()
+        }
+        return hints.firstNotNullOfOrNull { hint -> models.firstOrNull { it.contains(hint, ignoreCase = true) } }
+            ?: models.firstOrNull().orEmpty()
+    }
+}
+
+private const val STOP_AFTER = 5_000L
