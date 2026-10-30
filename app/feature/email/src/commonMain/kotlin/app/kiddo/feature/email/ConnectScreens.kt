@@ -83,3 +83,77 @@ fun GmailPasswordScreen(form: ConnectForm, actions: FormActions, modifier: Modif
     }
 }
 
+@Composable
+fun SmtpScreen(form: ConnectForm, onPickSecurity: () -> Unit, actions: FormActions, modifier: Modifier = Modifier) {
+    val ready = form.address.contains('@') && form.smtpHost.isNotBlank() && form.smtpPort.toIntOrNull() != null && form.secret.isNotEmpty()
+    KiddoScreen(
+        modifier,
+        header = { NavBar(title = stringResource(Res.string.smtp_title), onBack = actions.onBack) },
+        footer = { Primary(stringResource(Res.string.mail_test_connect), actions.onSubmit, enabled = ready, busy = form.testing) },
+    ) {
+        Field(form.address, { v -> actions.onEdit { it.copy(address = v) } }, label = stringResource(Res.string.smtp_address), kind = FieldKind.Email)
+        SectionLabel(stringResource(Res.string.smtp_sending))
+        Field(form.smtpHost, { v -> actions.onEdit { it.copy(smtpHost = v) } }, label = stringResource(Res.string.smtp_server), kind = FieldKind.Url, placeholder = "mail.example.com")
+        Row {
+            Box(Modifier.weight(1f)) {
+                Field(form.smtpPort, { v -> actions.onEdit { it.copy(smtpPort = v.filter(Char::isDigit)) } }, label = stringResource(Res.string.smtp_port), kind = FieldKind.Number)
+            }
+            Box(Modifier.weight(1f)) {
+                PickerField(securityLabel(form.security), onPickSecurity, label = stringResource(Res.string.smtp_security))
+            }
+        }
+        Field(form.username, { v -> actions.onEdit { it.copy(username = v) } }, label = stringResource(Res.string.smtp_username), kind = FieldKind.Email)
+        Field(form.secret, { v -> actions.onEdit { it.copy(secret = v) } }, label = stringResource(Res.string.smtp_password), kind = FieldKind.Secret, error = failureText(form))
+        SectionLabel(stringResource(Res.string.smtp_reading))
+        Field(
+            form.imapHost,
+            { v -> actions.onEdit { it.copy(imapHost = v) } },
+            label = stringResource(Res.string.smtp_server),
+            kind = FieldKind.Url,
+            placeholder = "mail.example.com",
+            note = stringResource(Res.string.smtp_imap_note),
+        )
+        Note(stringResource(Res.string.smtp_encrypted))
+    }
+}
+
+@Composable
+fun securityLabel(s: MailSecurity) = stringResource(if (s == MailSecurity.SslTls) Res.string.security_ssl else Res.string.security_starttls)
+
+@Composable
+private fun SectionLabel(text: String) {
+    BasicText(text, style = Kiddo.type.bodyStrong.copy(color = Kiddo.colors.fg), modifier = Modifier.fillMaxWidth().padding(start = 20.dp, top = 6.dp, bottom = 8.dp))
+}
+
+@Composable
+fun SendlyScreen(form: ConnectForm, onOpenSendly: () -> Unit, actions: FormActions, modifier: Modifier = Modifier) {
+    val ready = form.sendlyFrom.contains('@') && form.secret.isNotBlank()
+    KiddoScreen(
+        modifier,
+        header = { NavBar(onBack = actions.onBack) },
+        footer = { Primary(stringResource(Res.string.sendly_connect), actions.onSubmit, enabled = ready, busy = form.testing) },
+    ) {
+        Box(Modifier.padding(start = 20.dp, top = 4.dp, bottom = 8.dp)) { BrandLogoImage(BrandLogo.Sendly, 40.dp) }
+        Title(stringResource(Res.string.sendly_title), sub = stringResource(Res.string.sendly_sub))
+        Group {
+            ListRow(
+                stringResource(Res.string.sendly_open),
+                lead = { BrandLogoImage(BrandLogo.Sendly, 30.dp) },
+                sub = sub(stringResource(Res.string.sendly_open_sub)),
+                external = true,
+                onClick = onOpenSendly,
+            )
+        }
+        Field(form.secret, { v -> actions.onEdit { it.copy(secret = v.trim()) } }, label = stringResource(Res.string.sendly_key), kind = FieldKind.Secret, error = failureText(form))
+        Field(
+            form.sendlyFrom,
+            { v -> actions.onEdit { it.copy(sendlyFrom = v) } },
+            label = stringResource(Res.string.sendly_from),
+            kind = FieldKind.Email,
+            note = stringResource(Res.string.sendly_from_note),
+        )
+        Note(stringResource(Res.string.sendly_no_attach), glyph = KiddoGlyph.Info)
+    }
+}
+
+private const val APP_PASSWORD = 16
