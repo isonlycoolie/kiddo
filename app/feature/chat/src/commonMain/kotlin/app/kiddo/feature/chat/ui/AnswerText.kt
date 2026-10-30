@@ -83,3 +83,77 @@ private fun rememberReveal(text: String, animate: Boolean): Int {
     return shown.toInt()
 }
 
+@Composable
+private fun Block(block: MdBlock, tail: Boolean) {
+    val t = Kiddo.type
+    val c = Kiddo.colors
+    val body = t.chat.copy(color = c.fg)
+    when (block) {
+        is MdBlock.Paragraph -> Inline(block.text, body, tail)
+        is MdBlock.Heading -> Inline(block.text, (if (block.level <= 2) t.heading else t.bodyStrong).copy(color = c.fg), tail, Modifier.padding(top = 6.dp))
+        is MdBlock.Item -> Row(Modifier.padding(start = INDENT * block.depth)) {
+            BasicText(block.marker, style = body, modifier = Modifier.widthIn(min = MARKER))
+            Inline(block.text, body, tail, Modifier.weight(1f))
+        }
+        is MdBlock.Quote -> Row(Modifier.height(IntrinsicSize.Min)) {
+            Box(Modifier.width(3.dp).fillMaxHeight().background(c.line, RoundedCornerShape(2.dp)))
+            Inline(block.text, body.copy(color = c.muted), tail, Modifier.padding(start = 12.dp).weight(1f))
+        }
+        is MdBlock.Code -> Box(Modifier.fillMaxWidth().background(c.well, RoundedCornerShape(12.dp)).horizontalScroll(rememberScrollState()).padding(14.dp)) {
+            Inline(block.text, body.copy(fontFamily = FontFamily.Monospace, fontSize = 13.5.sp, lineHeight = 20.sp), tail, plain = true)
+        }
+        MdBlock.Rule -> Hairline()
+    }
+}
+
+@Composable
+private fun Inline(text: String, style: TextStyle, tail: Boolean, modifier: Modifier = Modifier, plain: Boolean = false) {
+    val c = Kiddo.colors
+    val fade = tail && !Kiddo.reducedMotion
+    val built = remember(text, style.color, c, tail, fade, plain) { annotate(text, style, c, tail, fade, plain) }
+    BasicText(built, modifier, style = style, inlineContent = if (tail) Caret else emptyMap())
+}
+
+private fun annotate(text: String, style: TextStyle, c: KiddoColors, tail: Boolean, fade: Boolean, plain: Boolean): AnnotatedString = buildAnnotatedString {
+    val runs = if (plain) listOf(Run(text, emptySet())) else parseInline(text)
+    runs.forEach { run ->
+        val start = length
+        append(run.text)
+        if (InlineMark.Bold in run.marks) addStyle(SpanStyle(fontWeight = FontWeight.SemiBold), start, length)
+        if (InlineMark.Italic in run.marks) addStyle(SpanStyle(fontStyle = FontStyle.Italic), start, length)
+        if (InlineMark.Code in run.marks) addStyle(SpanStyle(fontFamily = FontFamily.Monospace, fontSize = 0.9.em, background = c.well), start, length)
+    }
+    if (fade) {
+        val end = length
+        val from = maxOf(0, end - FADE)
+        val step = maxOf(1, (end - from + FADE_STEPS - 1) / FADE_STEPS)
+        var at = from
+        var k = 0
+        while (at < end) {
+            val alpha = 1f - (k + 1f) / (FADE_STEPS + 1f)
+            addStyle(SpanStyle(color = style.color.copy(alpha = style.color.alpha * alpha)), at, minOf(end, at + step))
+            at += step
+            k++
+        }
+    }
+    if (tail) {
+        append(' ')
+        appendInlineContent(CARET, " ")
+    }
+}
+
+private const val CARET = "caret"
+
+private val Caret = mapOf(
+    CARET to InlineTextContent(Placeholder(12.sp, 12.sp, PlaceholderVerticalAlign.TextCenter)) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { ThinkingDot() }
+    },
+)
+
+private const val NANOS = 1_000_000_000f
+private const val MIN_SPEED = 70f
+private const val CATCH_UP = 5f
+private const val FADE = 28
+private const val FADE_STEPS = 4
+private val INDENT = 18.dp
+private val MARKER = 22.dp
