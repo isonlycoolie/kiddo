@@ -96,3 +96,39 @@ class ProfileViewModel(private val workspaces: WorkspaceStore, cvs: CvStore) : V
 
 val profileModule = module { viewModelOf(::ProfileViewModel) }
 
+fun NavGraphBuilder.profileScreens(nav: NavController) {
+    composable<Route.Profile> {
+        val viewModel: ProfileViewModel = koinViewModel()
+        val state by viewModel.state.collectAsStateWithLifecycle()
+        val overlay = LocalOverlay.current
+        val toneTitle = stringResource(Res.string.profile_tone)
+        val signatureTitle = stringResource(Res.string.profile_signature)
+        state?.let { s ->
+            ProfileScreen(
+                s,
+                onBack = { nav.popBackStack() },
+                onSave = viewModel::save,
+                onTone = {
+                    overlay.sheet(toneTitle) {
+                        SheetGroup {
+                            Tone.entries.forEach { t ->
+                                SheetRow(stringResource(toneLabel(t)), { viewModel.save(s.workspace, s.profile.copy(tone = t)).also { overlay.close() } }, picked = t == s.profile.tone)
+                            }
+                        }
+                    }
+                },
+                onSignature = {
+                    overlay.sheet(signatureTitle) {
+                        SheetGroup {
+                            Signature.entries.forEach { g ->
+                                SheetRow(stringResource(signatureLabel(g)), { viewModel.save(s.workspace, s.profile.copy(signature = g)).also { overlay.close() } }, picked = g == s.profile.signature)
+                            }
+                        }
+                    }
+                },
+                onDefaultCv = { nav.navigate(Route.Cvs) },
+            )
+        }
+    }
+}
+
