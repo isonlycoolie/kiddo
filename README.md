@@ -34,14 +34,14 @@ Everything runs on your phone. There is no Kiddo account, no cloud and no tracki
 
 <table>
   <tr>
-    <td align="center"><img src=".github/assets/screens/home.png" alt="Home" width="260"><br><sub><b>Home</b>: tell Kiddo about a job</sub></td>
-    <td align="center"><img src=".github/assets/screens/chat-apply.png" alt="Apply from a link" width="260"><br><sub><b>Apply</b>: Kiddo reads the post</sub></td>
-    <td align="center"><img src=".github/assets/screens/send.png" alt="Send sheet" width="260"><br><sub><b>Send</b>: nothing leaves without your tap</sub></td>
+    <td align="center"><img src=".github/assets/screens/home-light.png" alt="Home" width="260"><br><sub><b>Home</b>: tell Kiddo about a job</sub></td>
+    <td align="center"><img src=".github/assets/screens/chat-apply-light.png" alt="Apply from a link" width="260"><br><sub><b>Apply</b>: Kiddo reads the post</sub></td>
+    <td align="center"><img src=".github/assets/screens/send-light.png" alt="Send sheet" width="260"><br><sub><b>Send</b>: nothing leaves without your tap</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src=".github/assets/screens/applications.png" alt="Applications" width="260"><br><sub><b>Applications</b>: every job and its status</sub></td>
-    <td align="center"><img src=".github/assets/screens/updates.png" alt="Updates" width="260"><br><sub><b>Updates</b>: replies and follow-ups</sub></td>
-    <td align="center"><img src=".github/assets/screens/ai.png" alt="AI models" width="260"><br><sub><b>AI models</b>: bring your own key</sub></td>
+    <td align="center"><img src=".github/assets/screens/applications-light.png" alt="Applications" width="260"><br><sub><b>Applications</b>: every job and its status</sub></td>
+    <td align="center"><img src=".github/assets/screens/updates-light.png" alt="Updates" width="260"><br><sub><b>Updates</b>: replies and follow-ups</sub></td>
+    <td align="center"><img src=".github/assets/screens/ai-light.png" alt="AI models" width="260"><br><sub><b>AI models</b>: bring your own key</sub></td>
   </tr>
   <tr>
     <td align="center"><img src=".github/assets/screens/gmail-guide.png" alt="Connect Gmail" width="260"><br><sub><b>Connect Gmail</b>: two quick steps</sub></td>
