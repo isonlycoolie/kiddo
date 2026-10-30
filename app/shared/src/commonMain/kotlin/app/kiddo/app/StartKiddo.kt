@@ -98,3 +98,9 @@ private val featureModules = listOf(
     backupModule,
 )
 
+const val SOURCE_URL = "https://github.com/isonlycoolie/kiddo"
+const val AUTHOR_URL = "https://github.com/isonlycoolie"
+const val AUTHOR = "isonlycoolie"
+
+private const val CONNECT_TIMEOUT = 10_000L
+private const val SOCKET_TIMEOUT = 90_000L
