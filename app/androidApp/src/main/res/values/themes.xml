@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Kiddo</string>
+    <!-- The window behind Compose's first frame: the page colour, so the start never flashes. -->
+    <color name="window_light">#FFFFFF</color>
+    <style name="Theme.Kiddo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_light</item>
+    </style>
+</resources>
