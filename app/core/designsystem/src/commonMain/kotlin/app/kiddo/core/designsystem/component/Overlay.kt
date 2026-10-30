@@ -174,3 +174,35 @@ fun SheetGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.(
     Column(modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kiddo.colors.sheetCard), content = content)
 }
 
+// Toast: floats up, holds, fades. A new key replays it.
+@Composable
+fun Toast(text: String, key: Int, onDone: () -> Unit, modifier: Modifier = Modifier) {
+    val t = remember { Animatable(0f) }
+    LaunchedEffect(key) {
+        t.snapTo(0f)
+        t.animateTo(1f, KiddoMotion.tween(KiddoMotion.TOAST, LinearEasing))
+        onDone()
+    }
+    Box(
+        modifier
+            .graphicsLayer {
+                val p = t.value
+                alpha = when {
+                    p < 0.12f -> p / 0.12f
+                    p > 0.85f -> (1 - p) / 0.15f
+                    else -> 1f
+                }
+                translationY = if (p < 0.12f) 12.dp.toPx() * (1 - p / 0.12f) else 0f
+            }
+            .background(Kiddo.colors.fg, CircleShape)
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+    ) {
+        BasicText(text, style = Kiddo.type.button.copy(color = Kiddo.colors.bg))
+    }
+}
+
+// System Back while something is open (a sheet, the menu) closes it first.
+@Composable
+expect fun BackPress(enabled: Boolean, onBack: () -> Unit)
+
+private const val DIM = 0.4f
