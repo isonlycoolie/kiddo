@@ -1,0 +1,20 @@
+# Plans, decisions, specs, the design preview and agent rules are local only (never committed).
+docs/
+AGENTS.md
+CLAUDE.md
+
+# Gradle, Kotlin and IDE outputs.
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+
+# JVM crash dumps.
+hs_err_pid*.log
+replay_pid*.log
+
+# Python bytecode from the brand scripts.
+__pycache__/

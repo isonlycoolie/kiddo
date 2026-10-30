@@ -1,0 +1,7 @@
+build/
+.gradle/
+.kotlin/
+local.properties
+*.hprof
+hs_err_pid*.log
+replay_pid*.log
