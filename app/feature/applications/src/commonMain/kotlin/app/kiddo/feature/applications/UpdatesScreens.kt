@@ -77,3 +77,81 @@ fun UpdatesScreen(notes: List<Notice>?, checking: Boolean, onBack: () -> Unit, o
     }
 }
 
+@Composable
+private fun NoticeRow(n: Notice, onOpen: (Notice) -> Unit) {
+    val c = Kiddo.colors
+    val dot = when (n.kind) {
+        NoticeKind.Reply -> c.ok
+        NoticeKind.FollowUpDue -> c.warn
+        NoticeKind.CheckFailed -> c.danger
+        NoticeKind.Sent -> Color.Transparent
+    }
+    val title = n.body.substringBefore('\n')
+    val body = n.body.substringAfter('\n', "")
+    val opens = n.applicationId != null || n.kind == NoticeKind.CheckFailed
+    Row(
+        Modifier.fillMaxWidth().pressable(if (opens) ({ onOpen(n) }) else null, pressedAlpha = 0.6f).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.align(Alignment.Top).padding(top = 7.dp).size(8.dp).background(if (n.read && n.kind != NoticeKind.CheckFailed) Color.Transparent else dot, CircleShape))
+        Column(Modifier.weight(1f)) {
+            Row {
+                BasicText(title, style = Kiddo.type.bodyStrong.copy(color = c.fg), modifier = Modifier.weight(1f))
+                BasicText(shortDate(n.createdAt), style = Kiddo.type.small.copy(color = c.muted))
+            }
+            if (body.isNotBlank()) BasicText(body, style = Kiddo.type.sub.copy(color = c.muted))
+        }
+        if (opens) KiddoIcon(KiddoGlyph.Chevron, null, size = 18.dp, tint = c.faint)
+    }
+}
+
+// A due follow-up, written and waiting for the user's tap.
+@Composable
+fun FollowUpScreen(
+    to: String,
+    subject: String,
+    body: String,
+    onBody: (String) -> Unit,
+    count: Int,
+    max: Int,
+    sending: Boolean,
+    onBack: () -> Unit,
+    onSend: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    KiddoScreen(
+        modifier,
+        header = { NavBar(title = stringResource(Res.string.follow_title), onBack = onBack) },
+        footer = { Primary(stringResource(Res.string.follow_send), onSend, glyph = KiddoGlyph.Sent, busy = sending, enabled = body.isNotBlank()) },
+    ) {
+        Group {
+            ListRow(to, sub = app.kiddo.core.designsystem.component.sub(stringResource(Res.string.draft_to)))
+            Hairline()
+            ListRow(subject, sub = app.kiddo.core.designsystem.component.sub(stringResource(Res.string.draft_subject)))
+        }
+        Field(body, onBody, label = stringResource(Res.string.draft_body), singleLine = false)
+        Note(stringResource(Res.string.follow_count, count, max), glyph = KiddoGlyph.Info)
+    }
+}
+
+class FollowUpsActions(val onBack: () -> Unit, val onChange: ((AppSettings) -> AppSettings) -> Unit, val onDays: () -> Unit, val onMax: () -> Unit)
+
+@Composable
+fun FollowUpsScreen(s: AppSettings, actions: FollowUpsActions, modifier: Modifier = Modifier) {
+    KiddoScreen(modifier, header = { NavBar(title = stringResource(Res.string.followups_title), onBack = actions.onBack) }) {
+        val onLabel = stringResource(Res.string.followups_on)
+        Group { ListRow(onLabel, trailing = { Toggle(s.followUps, { on -> actions.onChange { it.copy(followUps = on) } }, onLabel) }) }
+        if (s.followUps) {
+            val weekends = stringResource(Res.string.followups_weekends)
+            Group {
+                ListRow(stringResource(Res.string.followups_first), value = stringResource(Res.string.followups_after, s.followUpDays), onClick = actions.onDays)
+                Hairline()
+                ListRow(stringResource(Res.string.followups_max), value = s.followUpMax.toString(), onClick = actions.onMax)
+                Hairline()
+                ListRow(weekends, trailing = { Toggle(s.skipWeekends, { on -> actions.onChange { it.copy(skipWeekends = on) } }, weekends) })
+            }
+        }
+        Note(stringResource(Res.string.followups_note))
+    }
+}
