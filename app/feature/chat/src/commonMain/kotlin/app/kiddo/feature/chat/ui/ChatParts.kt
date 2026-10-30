@@ -71,3 +71,95 @@ fun ChatBar(title: String, onMenu: () -> Unit, onModel: (() -> Unit)?, onProfile
     }
 }
 
+// The rounded well at the foot of the chat. The round button sends, and becomes Stop while Kiddo is working.
+@Composable
+fun Composer(
+    text: String,
+    onText: (String) -> Unit,
+    hint: String,
+    running: Boolean,
+    enabled: Boolean,
+    onSend: () -> Unit,
+    onStop: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Kiddo.colors
+    Row(
+        modifier.fillMaxWidth().heightIn(min = 52.dp).background(colors.well, RoundedCornerShape(26.dp)).alpha(if (enabled) 1f else DISABLED)
+            .padding(start = 18.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Box(Modifier.weight(1f).padding(vertical = 9.dp)) {
+            if (text.isEmpty()) BasicText(hint, style = Kiddo.type.body.copy(color = colors.muted), maxLines = 1)
+            BasicTextField(
+                text,
+                onText,
+                enabled = enabled,
+                textStyle = Kiddo.type.body.copy(color = colors.fg),
+                cursorBrush = SolidColor(colors.fg),
+                maxLines = MAX_LINES,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        val canSend = enabled && text.isNotBlank()
+        val label = stringResource(if (running) Res.string.composer_stop else Res.string.composer_send)
+        Box(
+            Modifier.padding(start = 6.dp).size(40.dp)
+                .background(if (running || canSend) colors.fg else colors.raised, CircleShape)
+                .pressable(if (running) onStop else if (canSend) onSend else null, pressedScale = 0.9f, label = label),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (running) {
+                Box(Modifier.size(12.dp).background(colors.bg, RoundedCornerShape(3.dp)))
+            } else {
+                KiddoIcon(KiddoGlyph.Send, label, size = 20.dp, stroke = 2f, tint = if (canSend) colors.bg else colors.muted)
+            }
+        }
+    }
+}
+
+@Composable
+fun YouBubble(text: String, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().padding(start = 56.dp), contentAlignment = Alignment.CenterEnd) {
+        BasicText(
+            text,
+            style = Kiddo.type.body.copy(color = Kiddo.colors.fg),
+            modifier = Modifier.background(Kiddo.colors.well, RoundedCornerShape(20.dp)).padding(horizontal = 15.dp, vertical = 9.dp),
+        )
+    }
+}
+
+// Kiddo's answer: text across the page, written in as it streams; the thinking dot alone until the first words arrive.
+@Composable
+fun Answer(text: String, streaming: Boolean, failed: Boolean, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (text.isNotEmpty()) AnswerText(text, streaming) else if (streaming) ThinkingDot()
+        if (failed && !streaming) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                KiddoIcon(KiddoGlyph.Alert, null, size = 17.dp, tint = Kiddo.colors.danger)
+                BasicText(stringResource(Res.string.chat_failed), style = Kiddo.type.sub.copy(color = Kiddo.colors.danger))
+                Pill(stringResource(Res.string.chat_retry), onRetry, outline = true)
+            }
+        }
+    }
+}
+
+// The glow dot breathing while Kiddo thinks.
+@Composable
+fun ThinkingDot(modifier: Modifier = Modifier) {
+    val c = Kiddo.colors
+    val pulse by rememberInfiniteTransition(label = "think").animateFloat(
+        1f,
+        0.6f,
+        infiniteRepeatable(KiddoMotion.tween(KiddoMotion.THINK / 2, KiddoMotion.Ease), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    val scale = if (Kiddo.reducedMotion) 1f else pulse
+    Box(
+        modifier.size(12.dp).graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }.background(Brush.linearGradient(listOf(c.glowA, c.glowB, c.glowC)), CircleShape),
+    )
+}
+
