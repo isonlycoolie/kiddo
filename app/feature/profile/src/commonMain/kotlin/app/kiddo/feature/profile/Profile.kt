@@ -132,3 +132,97 @@ fun NavGraphBuilder.profileScreens(nav: NavController) {
     }
 }
 
+// Read first; Edit turns the details into fields, Save turns them back.
+@Composable
+fun ProfileScreen(
+    state: ProfileState,
+    onBack: () -> Unit,
+    onSave: (Workspace, Profile) -> Unit,
+    onTone: () -> Unit,
+    onSignature: () -> Unit,
+    onDefaultCv: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var editing by rememberSaveable { mutableStateOf(false) }
+    var name by rememberSaveable(editing) { mutableStateOf(state.workspace.name) }
+    var email by rememberSaveable(editing) { mutableStateOf(state.workspace.email) }
+    var headline by rememberSaveable(editing) { mutableStateOf(state.profile.headline) }
+    var phone by rememberSaveable(editing) { mutableStateOf(state.profile.phone) }
+    var portfolio by rememberSaveable(editing) { mutableStateOf(state.profile.portfolio) }
+    var linkedin by rememberSaveable(editing) { mutableStateOf(state.profile.linkedin) }
+    val action = stringResource(if (editing) Res.string.action_save else Res.string.action_edit)
+    KiddoScreen(
+        modifier,
+        header = {
+            NavBar(title = stringResource(Res.string.profile_title).takeIf { editing }, onBack = onBack) {
+                BasicText(
+                    action,
+                    style = Kiddo.type.bodyStrong.copy(color = Kiddo.colors.fg),
+                    modifier = Modifier.pressable({
+                        if (editing) {
+                            onSave(
+                                state.workspace.copy(name = name.ifBlank { state.workspace.name }, email = email.ifBlank { state.workspace.email }),
+                                state.profile.copy(headline = headline, phone = phone, portfolio = portfolio, linkedin = linkedin),
+                            )
+                        }
+                        editing = !editing
+                    }, pressedAlpha = 0.5f).padding(12.dp),
+                )
+            }
+        },
+    ) {
+        if (editing) {
+            Field(name, { name = it }, label = stringResource(Res.string.profile_name))
+            Field(email, { email = it }, label = stringResource(Res.string.profile_email), kind = FieldKind.Email)
+            Field(headline, { headline = it }, label = stringResource(Res.string.profile_headline))
+            Field(phone, { phone = it }, label = stringResource(Res.string.profile_phone))
+            Field(portfolio, { portfolio = it }, label = stringResource(Res.string.profile_portfolio), kind = FieldKind.Url)
+            Field(linkedin, { linkedin = it }, label = stringResource(Res.string.profile_linkedin), kind = FieldKind.Url)
+            return@KiddoScreen
+        }
+        Column(Modifier.fillMaxWidth().padding(bottom = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Avatar(size = 76.dp)
+            BasicText(state.workspace.name, style = Kiddo.type.heading.copy(color = Kiddo.colors.fg), modifier = Modifier.padding(top = 12.dp))
+            if (state.profile.headline.isNotBlank()) {
+                BasicText(state.profile.headline, style = Kiddo.type.body.copy(color = Kiddo.colors.muted))
+            }
+        }
+        Group(title = stringResource(Res.string.profile_in_every)) {
+            Info(stringResource(Res.string.profile_email), state.workspace.email)
+            Hairline()
+            Info(stringResource(Res.string.profile_headline), state.profile.headline)
+            Hairline()
+            Info(stringResource(Res.string.profile_phone), state.profile.phone)
+            Hairline()
+            Info(stringResource(Res.string.profile_portfolio), state.profile.portfolio)
+            Hairline()
+            Info(stringResource(Res.string.profile_linkedin), state.profile.linkedin)
+        }
+        Group(title = stringResource(Res.string.profile_writing), note = stringResource(Res.string.profile_writing_note)) {
+            ListRow(stringResource(Res.string.profile_tone), value = stringResource(toneLabel(state.profile.tone)), onClick = onTone)
+            Hairline()
+            ListRow(stringResource(Res.string.profile_signature), value = stringResource(signatureLabel(state.profile.signature)), onClick = onSignature)
+            Hairline()
+            ListRow(stringResource(Res.string.profile_default_cv), value = state.defaultCv?.name ?: stringResource(Res.string.settings_none), onClick = onDefaultCv)
+        }
+        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            KiddoIcon(KiddoGlyph.Lock, null, size = 15.dp, tint = Kiddo.colors.ok)
+            Box(Modifier.padding(start = 6.dp)) {
+                BasicText(stringResource(Res.string.profile_stored), style = Kiddo.type.sub.copy(color = Kiddo.colors.muted))
+            }
+        }
+    }
+}
+
+private fun toneLabel(t: Tone): StringResource = when (t) {
+    Tone.Formal -> Res.string.tone_formal
+    Tone.Friendly -> Res.string.tone_friendly
+    Tone.Brief -> Res.string.tone_brief
+}
+
+private fun signatureLabel(s: Signature): StringResource = when (s) {
+    Signature.Name -> Res.string.signature_name
+    Signature.NameAndPhone -> Res.string.signature_name_phone
+}
+
+private const val STOP_AFTER = 5_000L
