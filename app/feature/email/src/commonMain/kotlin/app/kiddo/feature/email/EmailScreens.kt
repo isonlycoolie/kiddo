@@ -181,3 +181,24 @@ fun EmailAccountScreen(account: MailAccount?, check: MailCheck?, testing: Boolea
     }
 }
 
+@Composable
+private fun kindLabel(kind: MailKind) = stringResource(
+    when (kind) {
+        MailKind.GmailAppPassword -> Res.string.email_gmail
+        MailKind.Smtp -> Res.string.email_domain
+        MailKind.Sendly -> Res.string.email_sendly
+    },
+)
+
+// Google sign-in needs Google's approval of Kiddo first; until then this points to the app password.
+@Composable
+fun GoogleSignInScreen(onBack: () -> Unit, onUsePassword: () -> Unit, modifier: Modifier = Modifier) {
+    KiddoScreen(modifier, header = { NavBar(onBack = onBack) }, footer = { Primary(stringResource(Res.string.google_use_password), onUsePassword) }) {
+        Box(Modifier.padding(start = 20.dp, top = 4.dp, bottom = 8.dp)) { BrandLogoImage(BrandLogo.Google, 36.dp) }
+        Title(stringResource(Res.string.google_title), sub = stringResource(Res.string.google_sub))
+    }
+}
+
+const val TWO_STEP_URL = "https://myaccount.google.com/signinoptions/two-step-verification"
+const val APP_PASSWORDS_URL = "https://myaccount.google.com/apppasswords"
+const val SENDLY_URL = "https://dashboard.usesendly.cc"
