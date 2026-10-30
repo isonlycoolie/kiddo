@@ -193,3 +193,80 @@ private fun Starters(onText: (String) -> Unit, onImproveCv: () -> Unit) {
     }
 }
 
+@Composable
+private fun Conversation(state: ChatState, onRetry: () -> Unit, cards: CardActions, modifier: Modifier = Modifier) {
+    val list = rememberLazyListState()
+    val count = state.messages.size
+    // Follows the answer as it grows while the reader is at the bottom; scrolling up to read lets go until they return.
+    var follow by remember { mutableStateOf(true) }
+    LaunchedEffect(count) {
+        if (count == 0) return@LaunchedEffect
+        follow = true
+        list.animateScrollToItem(count - 1)
+        list.scrollBy(TO_END)
+    }
+    LaunchedEffect(list) { snapshotFlow { list.isScrollInProgress }.collect { moving -> if (!moving) follow = !list.canScrollForward } }
+    LaunchedEffect(list) {
+        snapshotFlow { list.canScrollForward }.collect { more -> if (more && follow && !list.isScrollInProgress) list.scrollBy(TO_END) }
+    }
+    ScrollToTopOnRequest { list.animateScrollToItem(0) }
+    LazyColumn(
+        modifier.fillMaxWidth().nestedScroll(rememberKeyboardAwayOnDrag(platformFeel.dragDismissesKeyboard)),
+        state = list,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        items(state.messages, key = { it.id }, contentType = { it.kind }) { message ->
+            val payload = message.payload
+            when {
+                message.role == ChatRole.User -> YouBubble(message.text)
+                message.kind == MessageKind.Step && payload != null -> parseModelJson<StepCard>(payload)?.let { StepLine(it) }
+                message.kind == MessageKind.Job && payload != null -> parseModelJson<JobCard>(payload)?.let { JobCardView(it) }
+                message.kind == MessageKind.Draft && payload != null -> parseModelJson<DraftCard>(payload)?.let { DraftCardView(message.id, it, cards) }
+                message.kind == MessageKind.Blocked && payload != null -> parseModelJson<BlockedCard>(payload)?.let { BlockedView(it.url, cards) }
+                message.kind == MessageKind.CvBuilt && payload != null -> parseModelJson<CvBuiltCard>(payload)?.let { CvBuiltView(message.id, it, cards) }
+                else -> TextAnswer(state, message, onRetry)
+            }
+        }
+        if (state.live.running && state.live.streamingId == null) item(key = "working") { ThinkingDot() }
+    }
+}
+
+@Composable
+private fun TextAnswer(state: ChatState, message: app.kiddo.core.model.ChatMessage, onRetry: () -> Unit) {
+    val live = message.id == state.live.streamingId
+    // When a stream ends the saved text can land a moment after the live copy clears; keep the last words meanwhile.
+    val last = remember(message.id) { StringBuilder() }
+    val text = when {
+        live -> state.live.streamed
+        message.text.isNotEmpty() -> message.text
+        else -> last.toString()
+    }
+    if (live || message.text.isNotEmpty()) last.setLength(0).also { last.append(text) }
+    Answer(
+        text = text,
+        streaming = live && state.live.running,
+        failed = message.failed && message.id == state.messages.last().id,
+        onRetry = onRetry,
+    )
+}
+
+// The menu: a panel from the left over a dim, like ChatGPT's.
+@Composable
+private fun Drawer(open: Boolean, state: ChatState, actions: MenuActions, onClose: () -> Unit) {
+    val reduced = Kiddo.reducedMotion
+    AnimatedVisibility(open, enter = fadeIn(KiddoMotion.tween(KiddoMotion.QUICK, KiddoMotion.Ease)), exit = fadeOut(KiddoMotion.tween(KiddoMotion.QUICK, KiddoMotion.Ease))) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = DIM)).pressable(onClose, label = stringResource(Res.string.menu_close)))
+    }
+    AnimatedVisibility(
+        open,
+        enter = if (reduced) fadeIn(KiddoMotion.reduced()) else slideInHorizontally(KiddoMotion.tween(KiddoMotion.DRAWER, KiddoMotion.Emphasized)) { -it },
+        exit = if (reduced) fadeOut(KiddoMotion.reduced()) else slideOutHorizontally(KiddoMotion.tween(KiddoMotion.QUICK, KiddoMotion.Accelerate)) { -it },
+    ) {
+        Menu(state, actions, onClose, Modifier.fillMaxWidth(DRAWER_WIDTH))
+    }
+}
+
+private const val DIM = 0.4f
+private const val DRAWER_WIDTH = 0.84f
+private const val TO_END = 100_000f
