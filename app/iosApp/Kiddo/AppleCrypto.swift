@@ -86,3 +86,71 @@ final class AppleCryptoBridge: NSObject, AppleCrypto {
         return SymmetricKey(data: raw)
     }
 
+    private func create(_ name: String) -> SymmetricKey? {
+        let key = SymmetricKey(size: .bits256)
+        let raw = key.withUnsafeBytes { Data($0) }
+        var stored = raw
+        if SecureEnclave.isAvailable {
+            guard let enclave = enclaveKey(name, create: true),
+                  let publicKey = SecKeyCopyPublicKey(enclave),
+                  let wrapped = SecKeyCreateEncryptedData(publicKey, algorithm, raw as CFData, nil) as Data? else { return nil }
+            stored = wrapped
+        }
+        let item: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: name,
+            kSecValueData: stored,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+        SecItemDelete([kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: name] as [CFString: Any] as CFDictionary)
+        guard SecItemAdd(item as CFDictionary, nil) == errSecSuccess else { return nil }
+        return key
+    }
+
+    private func keychainData(_ name: String) -> Data? {
+        var found: CFTypeRef?
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: name,
+            kSecReturnData: true,
+            kSecMatchLimit: kSecMatchLimitOne,
+        ]
+        guard SecItemCopyMatching(query as CFDictionary, &found) == errSecSuccess else { return nil }
+        return found as? Data
+    }
+
+    // The Enclave key for `name`: found by its tag, or made there (it can only be used, never read out).
+    private func enclaveKey(_ name: String, create: Bool) -> SecKey? {
+        var found: CFTypeRef?
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassKey,
+            kSecAttrApplicationTag: tag(name),
+            kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecReturnRef: true,
+        ]
+        if SecItemCopyMatching(query as CFDictionary, &found) == errSecSuccess, let found {
+            return (found as! SecKey)
+        }
+        guard create,
+              let access = SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, .privateKeyUsage, nil) else {
+            return nil
+        }
+        let attributes: [CFString: Any] = [
+            kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeySizeInBits: 256,
+            kSecAttrTokenID: kSecAttrTokenIDSecureEnclave,
+            kSecPrivateKeyAttrs: [
+                kSecAttrIsPermanent: true,
+                kSecAttrApplicationTag: tag(name),
+                kSecAttrAccessControl: access,
+            ] as [CFString: Any],
+        ]
+        return SecKeyCreateRandomKey(attributes as CFDictionary, nil)
+    }
+
+    private func tag(_ name: String) -> Data {
+        Data("app.kiddo.enclave.\(name)".utf8)
+    }
+}
