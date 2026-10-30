@@ -49,8 +49,9 @@ fun interface AppReset {
     fun eraseAll()
 }
 
-// Seals a backup with a passphrase only the user knows: a key stretched from the passphrase (PBKDF2, a fresh salt each
-// time) and AES-256-GCM. Open returns null for a wrong passphrase or a damaged file.
+// Seals a backup with a passphrase only the user knows: a key stretched from the passphrase (Argon2id, a fresh salt
+// each time) and AES-256-GCM. Backups from older builds (PBKDF2) still open. Open returns null for a wrong passphrase
+// or a damaged file.
 expect object PassphraseBox {
     fun seal(plain: ByteArray, passphrase: String): ByteArray
 
