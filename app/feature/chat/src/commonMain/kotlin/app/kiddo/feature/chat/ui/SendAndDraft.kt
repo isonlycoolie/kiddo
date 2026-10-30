@@ -91,3 +91,71 @@ fun SendSheet(draft: DraftCard, mail: MailAccount, followUpDays: Int, onSend: (o
     )
 }
 
+@Composable
+private fun SendLine(name: String, value: String) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        BasicText(name, style = Kiddo.type.body.copy(color = Kiddo.colors.muted), modifier = Modifier.width(72.dp))
+        BasicText(value, style = Kiddo.type.body.copy(color = Kiddo.colors.fg), maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+// The whole draft, editable like a mail app.
+@Composable
+fun DraftScreen(draft: DraftCard, onBack: () -> Unit, onSave: (to: String, subject: String, body: String) -> Unit, modifier: Modifier = Modifier) {
+    var to by remember(draft) { mutableStateOf(draft.to) }
+    var subject by remember(draft) { mutableStateOf(draft.subject) }
+    var body by remember(draft) { mutableStateOf(draft.body) }
+    KiddoScreen(
+        modifier,
+        header = { NavBar(title = stringResource(Res.string.draft_title), onBack = onBack) },
+        footer = { Primary(stringResource(Res.string.action_save), { onSave(to, subject, body) }, enabled = subject.isNotBlank() && body.isNotBlank()) },
+    ) {
+        if (draft.to.isNotBlank()) Field(to, { to = it }, label = stringResource(Res.string.draft_to), kind = FieldKind.Email)
+        Field(subject, { subject = it }, label = stringResource(Res.string.draft_subject))
+        Field(body, { body = it }, label = stringResource(Res.string.draft_body), singleLine = false)
+    }
+}
+
+// The Kiddo browser: the page as the user sees it, and one button that hands it to Kiddo.
+@Composable
+fun BrowserScreen(url: String, onClose: () -> Unit, onUse: (String) -> Unit, modifier: Modifier = Modifier) {
+    var reader by remember { mutableStateOf<(suspend () -> String)?>(null) }
+    var reading by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    KiddoScreen(
+        modifier,
+        scrolls = false,
+        header = {
+            Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(KiddoGlyph.Close, stringResource(Res.string.action_close), onClose)
+                Row(
+                    Modifier.weight(1f).height(36.dp).background(Kiddo.colors.well, CircleShape).padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                ) {
+                    KiddoIcon(KiddoGlyph.Lock, null, size = 14.dp, tint = Kiddo.colors.ok)
+                    BasicText(url.substringAfter("://").substringBefore('/'), style = Kiddo.type.button.copy(color = Kiddo.colors.fg), maxLines = 1)
+                }
+                Box(Modifier.width(44.dp))
+            }
+        },
+        footer = {
+            Primary(stringResource(Res.string.browser_use), {
+                val read = reader ?: return@Primary
+                reading = true
+                scope.launch {
+                    val text = read()
+                    reading = false
+                    onUse(text)
+                }
+            }, enabled = reader != null, busy = reading)
+            BasicText(
+                stringResource(Res.string.browser_forget),
+                style = Kiddo.type.small.copy(color = Kiddo.colors.muted, textAlign = TextAlign.Center),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            )
+        },
+    ) {
+        Column(Modifier.weight(1f).fillMaxWidth()) { KiddoBrowser(url, { reader = it }, Modifier.fillMaxSize()) }
+    }
+}
