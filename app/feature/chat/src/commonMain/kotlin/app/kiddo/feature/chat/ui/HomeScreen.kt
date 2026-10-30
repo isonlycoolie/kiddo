@@ -96,3 +96,100 @@ class HomeActions(
     val cards: CardActions,
 )
 
+@Composable
+fun HomeScreen(state: ChatState, draft: String, menuOpen: Boolean, actions: HomeActions, modifier: Modifier = Modifier) {
+    val ready = state.active != null
+    val empty = state.messages.isEmpty()
+    Box(modifier.fillMaxSize()) {
+        KiddoScreen(
+            scrolls = false,
+            header = {
+                ChatBar(
+                    title = state.active?.model ?: stringResource(Res.string.chat_title),
+                    onMenu = { actions.onMenu(true) },
+                    onModel = actions.onModel.takeIf { state.accounts.size > 1 || ready },
+                    onProfile = actions.onProfile,
+                    dot = state.unread > 0,
+                )
+            },
+            footer = {
+                if (empty && ready && state.setup.done) Starters(actions.onText, actions.onImproveCv)
+                val hint = when {
+                    !ready -> Res.string.composer_needs_model
+                    empty -> Res.string.composer_hint
+                    else -> Res.string.composer_reply
+                }
+                Composer(draft, actions.onText, stringResource(hint), state.live.running, ready, actions.onSend, actions.onStop)
+            },
+        ) {
+            when {
+                !state.loaded -> Box(Modifier.weight(1f))
+                empty && !state.setup.done -> SetupCard(state, actions, Modifier.weight(1f))
+                empty -> Greeting(Modifier.weight(1f))
+                else -> Conversation(state, actions.onRetry, actions.cards, Modifier.weight(1f))
+            }
+        }
+        Drawer(menuOpen, state, actions.menu, onClose = { actions.onMenu(false) })
+    }
+}
+
+@Composable
+private fun Greeting(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Glow(Modifier.offset(y = (-40).dp), size = 230.dp)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Mark(size = 46.dp)
+            BasicText(
+                stringResource(Res.string.chat_greeting),
+                style = Kiddo.type.title.copy(color = Kiddo.colors.fg, textAlign = TextAlign.Center, fontSize = Kiddo.type.heading.fontSize * 1.26f),
+                modifier = Modifier.padding(top = 16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SetupCard(state: ChatState, actions: HomeActions, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth()) {
+        Glow(Modifier.align(Alignment.TopEnd).offset(x = 60.dp, y = 10.dp), size = 280.dp)
+        SetupSteps(state, actions)
+    }
+}
+
+@Composable
+private fun SetupSteps(state: ChatState, actions: HomeActions) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
+        BasicText(
+            stringResource(Res.string.chat_ready_title, state.name),
+            style = Kiddo.type.title.copy(color = Kiddo.colors.fg),
+            modifier = Modifier.padding(start = 4.dp),
+        )
+        Column(Modifier.padding(top = 20.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kiddo.colors.well)) {
+            SetupStep(stringResource(Res.string.setup_ai), stringResource(Res.string.setup_ai_body), state.setup.model, actions.onSetupAi)
+            Hairline()
+            SetupStep(stringResource(Res.string.setup_mail), stringResource(Res.string.setup_mail_body), state.setup.mail, actions.onSetupMail)
+            Hairline()
+            SetupStep(stringResource(Res.string.setup_cv), stringResource(Res.string.setup_cv_body), state.setup.cv, actions.onSetupCv)
+        }
+        BasicText(
+            stringResource(Res.string.chat_ready_note),
+            style = Kiddo.type.sub.copy(color = Kiddo.colors.muted),
+            modifier = Modifier.padding(start = 4.dp, top = 14.dp),
+        )
+    }
+}
+
+@Composable
+private fun Starters(onText: (String) -> Unit, onImproveCv: () -> Unit) {
+    val post = stringResource(Res.string.starter_post_text)
+    val email = stringResource(Res.string.starter_email_text)
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Starter(stringResource(Res.string.starter_post), stringResource(Res.string.starter_post_sub), { onText(post) })
+        Starter(stringResource(Res.string.starter_cv), stringResource(Res.string.starter_cv_sub), onImproveCv)
+        Starter(stringResource(Res.string.starter_email), stringResource(Res.string.starter_email_sub), { onText(email) })
+    }
+}
+
