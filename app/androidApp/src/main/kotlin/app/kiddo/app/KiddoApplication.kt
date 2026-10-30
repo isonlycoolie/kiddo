@@ -10,6 +10,6 @@ class KiddoApplication : Application() {
         startKiddo(androidPlatform, AppInfo(BuildConfig.VERSION_NAME, SOURCE_URL, AUTHOR_URL, AUTHOR)) {
             androidContext(this@KiddoApplication)
         }
-        InboxJob.schedule(this)
+        InboxWork.schedule(this)
     }
 }
