@@ -91,3 +91,19 @@ class BackupService(private val s: Storage, private val secrets: SecretStore) {
     @Serializable
     private data class Row(val id: String, val v: Map<String, String?>, val at: Long = 0)
 
+    @Serializable
+    private data class BackupData(
+        val version: Int = 1,
+        val workspace: Row,
+        val settings: List<Row>,
+        val providers: List<Row>,
+        val chats: List<Row>,
+        val messages: List<Row>,
+        val cvs: List<Row>,
+        val mail: List<Row>,
+        val applications: List<Row>,
+        val notices: List<Row>,
+    )
+
+    private val json = Json { ignoreUnknownKeys = true }
+}
