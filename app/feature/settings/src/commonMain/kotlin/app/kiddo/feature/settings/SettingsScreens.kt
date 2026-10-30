@@ -81,3 +81,78 @@ class SettingsActions(
     val onErase: () -> Unit,
 )
 
+@Composable
+fun SettingsScreen(state: SettingsState, actions: SettingsActions, modifier: Modifier = Modifier) {
+    KiddoScreen(modifier, header = { NavBar(title = stringResource(Res.string.settings_title), onBack = actions.onBack) }) {
+        Group {
+            ListRow(stringResource(Res.string.settings_email), glyph = KiddoGlyph.Mail, value = state.mail?.address ?: stringResource(Res.string.settings_none), onClick = actions.onEmail)
+            Hairline()
+            ListRow(stringResource(Res.string.settings_ai), glyph = KiddoGlyph.Ai, value = state.providers.firstOrNull()?.provider?.label ?: stringResource(Res.string.settings_none), onClick = actions.onAi)
+            Hairline()
+            ListRow(stringResource(Res.string.settings_followups), glyph = KiddoGlyph.Refresh, onClick = actions.onFollowUps)
+        }
+        Group {
+            val lock = if (state.settings.lockEnabled) Res.string.settings_lock_on else Res.string.settings_lock_off
+            ListRow(stringResource(Res.string.settings_security), glyph = KiddoGlyph.Shield, value = stringResource(lock), onClick = actions.onSecurity)
+            Hairline()
+            ListRow(stringResource(Res.string.settings_backup), glyph = KiddoGlyph.Backup, onClick = actions.onBackup)
+        }
+        Group {
+            ListRow(stringResource(Res.string.settings_appearance), glyph = KiddoGlyph.Moon, value = stringResource(appearanceLabel(state.settings.appearance)), onClick = actions.onAppearance)
+            Hairline()
+            ListRow(stringResource(Res.string.settings_about), glyph = KiddoGlyph.Info, onClick = actions.onAbout)
+        }
+        Group { ListRow(stringResource(Res.string.settings_erase), glyph = KiddoGlyph.Trash, danger = true, onClick = actions.onErase) }
+    }
+}
+
+fun appearanceLabel(a: Appearance): StringResource = when (a) {
+    Appearance.System -> Res.string.appearance_system
+    Appearance.Light -> Res.string.appearance_light
+    Appearance.Dark -> Res.string.appearance_dark
+}
+
+fun lockAfterLabel(a: LockAfter): StringResource = when (a) {
+    LockAfter.RightAway -> Res.string.lock_after_right_away
+    LockAfter.OneMinute -> Res.string.lock_after_one
+    LockAfter.FiveMinutes -> Res.string.lock_after_five
+}
+
+class SecurityActions(
+    val onBack: () -> Unit,
+    val onLock: (Boolean) -> Unit,
+    val onLockAfter: () -> Unit,
+    val onHide: (Boolean) -> Unit,
+    val onErase: () -> Unit,
+)
+
+@Composable
+fun SecurityScreen(state: SettingsState, actions: SecurityActions, modifier: Modifier = Modifier) {
+    KiddoScreen(modifier, header = { NavBar(title = stringResource(Res.string.settings_security), onBack = actions.onBack) }) {
+        val s = state.settings
+        val lockLabel = stringResource(Res.string.security_lock)
+        Group {
+            ListRow(lockLabel, glyph = KiddoGlyph.Finger, trailing = { Toggle(s.lockEnabled, actions.onLock, lockLabel) })
+            if (s.lockEnabled) {
+                Hairline()
+                ListRow(stringResource(Res.string.security_lock_after), value = stringResource(lockAfterLabel(s.lockAfter)), onClick = actions.onLockAfter)
+            }
+        }
+        val hideLabel = stringResource(Res.string.security_hide)
+        Group(note = stringResource(if (platformFeel.blocksScreenshots) Res.string.security_hide_note else Res.string.security_hide_note_apple)) {
+            ListRow(hideLabel, trailing = { Toggle(s.hideInSwitcher, actions.onHide, hideLabel) })
+        }
+        Group(title = stringResource(Res.string.security_keys)) {
+            val chip = when {
+                platformFeel.appleNames -> if (state.hardware.strongBox) Res.string.security_enclave else Res.string.security_keychain
+                state.hardware.strongBox -> Res.string.security_strongbox
+                else -> Res.string.security_tee
+            }
+            ListRow(stringResource(Res.string.security_sealed), glyph = KiddoGlyph.Key, sub = sub(stringResource(chip)), trailing = { Tick() })
+            Hairline()
+            ListRow(stringResource(Res.string.security_encrypted), glyph = KiddoGlyph.Lock, sub = sub(stringResource(Res.string.security_encrypted_sub)), trailing = { Tick() })
+        }
+        Group { ListRow(stringResource(Res.string.settings_erase), glyph = KiddoGlyph.Trash, danger = true, onClick = actions.onErase) }
+    }
+}
+
