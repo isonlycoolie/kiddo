@@ -152,3 +152,67 @@ private fun CompanyTile(name: String, size: Int = 44) {
 
 class ApplicationActions(val onBack: () -> Unit, val onMore: () -> Unit, val onOpenChat: (String) -> Unit, val onFollowUp: () -> Unit)
 
+@Composable
+fun ApplicationScreen(app: Application?, actions: ApplicationActions, modifier: Modifier = Modifier) {
+    KiddoScreen(
+        modifier,
+        header = { NavBar(onBack = actions.onBack) { if (app != null) IconButton(KiddoGlyph.More, stringResource(Res.string.action_more), actions.onMore) } },
+        footer = { app?.chatId?.let { chat -> Primary(stringResource(Res.string.app_open_chat), { actions.onOpenChat(chat) }) } },
+    ) {
+        if (app == null) return@KiddoScreen
+        Row(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            CompanyTile(app.company.ifBlank { app.to }, size = 52)
+            Column(Modifier.weight(1f)) {
+                BasicText(app.role, style = Kiddo.type.heading.copy(color = Kiddo.colors.fg))
+                BasicText(app.company, style = Kiddo.type.body.copy(color = Kiddo.colors.muted))
+            }
+            StatusPill(app.status)
+        }
+        Group {
+            val site = app.status == AppStatus.AppliedOnSite
+            ListRow(app.to, glyph = if (site) KiddoGlyph.Globe else KiddoGlyph.Mail, sub = sub(stringResource(if (site) Res.string.app_applied_site else Res.string.app_applied_email)))
+            app.cvName?.let {
+                Hairline()
+                ListRow(it, glyph = KiddoGlyph.File, sub = sub(stringResource(Res.string.app_cv_sent)))
+            }
+        }
+        Label(stringResource(Res.string.app_happened))
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 10.dp)) {
+            Event(stringResource(Res.string.app_event_sent), shortDate(app.sentAt), done = true)
+            if (app.followUps > 0) Event(stringResource(Res.string.app_event_follow, app.followUps), "", done = true)
+            if (app.replyAt != null) Event(stringResource(Res.string.app_event_reply), shortDate(app.replyAt!!), done = true, good = true)
+            else if (app.status == AppStatus.Sent) Event(stringResource(Res.string.app_event_waiting), "", done = false, last = true)
+        }
+        app.reply?.let { reply ->
+            Label(stringResource(Res.string.app_their_reply))
+            BasicText(
+                reply,
+                style = Kiddo.type.body.copy(color = Kiddo.colors.fg),
+                modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(Kiddo.colors.well, RoundedCornerShape(16.dp)).padding(14.dp),
+            )
+        }
+        if (app.status == AppStatus.Sent) {
+            Box(Modifier.padding(16.dp)) { Secondary(stringResource(Res.string.app_follow_now), actions.onFollowUp, glyph = KiddoGlyph.Refresh) }
+        }
+    }
+}
+
+@Composable
+private fun Label(text: String) {
+    BasicText(text, style = Kiddo.type.label.copy(color = Kiddo.colors.muted), modifier = Modifier.padding(start = 20.dp, bottom = 8.dp, top = 4.dp))
+}
+
+@Composable
+private fun Event(title: String, whenText: String, done: Boolean, good: Boolean = false, last: Boolean = false) {
+    val c = Kiddo.colors
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 6.dp)) {
+            Box(Modifier.size(9.dp).background(if (good) c.ok else if (done) c.fg else c.faint, CircleShape))
+            if (!last) Box(Modifier.width(1.5.dp).height(22.dp).background(c.line))
+        }
+        Row(Modifier.weight(1f)) {
+            BasicText(title, style = Kiddo.type.body.copy(color = if (done) c.fg else c.muted), modifier = Modifier.weight(1f))
+            BasicText(whenText, style = Kiddo.type.sub.copy(color = c.muted))
+        }
+    }
+}
