@@ -2,6 +2,12 @@ package app.kiddo.core.web
 
 import app.kiddo.core.model.Failure
 import app.kiddo.core.model.Outcome
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.nodes.Document
+import com.fleeksoft.ksoup.nodes.Element
+import com.fleeksoft.ksoup.nodes.Node
+import com.fleeksoft.ksoup.nodes.TextNode
+import com.fleeksoft.ksoup.select.NodeVisitor
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -41,34 +47,48 @@ class PageReader(private val http: HttpClient) {
     }
 }
 
-// HTML to readable text: scripts, styles and navigation go, block tags become line breaks, entities are decoded.
+// HTML to readable text with Ksoup: scripts, styles and navigation go, blocks become line breaks, list items keep a
+// dash. Emails come from the text and from mailto links.
 object Html {
     fun page(url: String, html: String): Page {
-        val title = Regex("<title[^>]*>(.*?)</title>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)?.let(::decode).orEmpty()
-        val text = text(html)
-        return Page(url, title.trim(), text, emails(html + " " + text))
+        val doc = Ksoup.parse(html, url)
+        val title = doc.title()
+        doc.select(DROP).remove()
+        val text = text(doc)
+        val mailto = doc.select("a[href^=mailto:]").joinToString(" ") { it.attr("href").removePrefix("mailto:").substringBefore('?') }
+        return Page(url, title.trim(), text, emails("$mailto $text"))
     }
-
-    fun text(html: String): String = html
-        .replace(Regex("(?is)<(script|style|noscript|svg|nav|footer|header)[^>]*>.*?</\\1>"), " ")
-        .replace(Regex("(?i)<br\\s*/?>"), "\n")
-        .replace(Regex("(?i)</(p|div|li|h[1-6]|tr|section|article)>"), "\n")
-        .replace(Regex("(?i)<li[^>]*>"), "- ")
-        .replace(Regex("<[^>]+>"), " ")
-        .let(::decode)
-        .lines()
-        .map { it.replace(Regex("[ \\t\\u00A0]+"), " ").trim() }
-        .filter { it.isNotEmpty() }
-        .joinToString("\n")
-        .take(MAX_TEXT)
 
     fun emails(text: String): List<String> =
         Regex("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}").findAll(text).map { it.value.trimEnd('.') }.distinct().take(MAX_EMAILS).toList()
 
-    private fun decode(s: String) = s
-        .replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
-        .replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'")
-        .replace(Regex("&#(\\d+);")) { m -> m.groupValues[1].toIntOrNull()?.let { Char(it).toString() } ?: "" }
+    private fun text(doc: Document): String {
+        val out = StringBuilder()
+        doc.traverse(
+            object : NodeVisitor {
+                override fun head(node: Node, depth: Int) {
+                    when {
+                        node is TextNode -> out.append(node.text())
+                        node !is Element -> Unit
+                        node.tagName() == "br" -> out.append('\n')
+                        node.tagName() == "li" -> out.append("\n- ")
+                        node.isBlock() -> out.append('\n')
+                    }
+                }
+
+                override fun tail(node: Node, depth: Int) {
+                    if (node is Element && node.isBlock()) out.append('\n')
+                }
+            },
+        )
+        return out.lines()
+            .map { it.replace(Regex("[ \t\u00A0]+"), " ").trim() }
+            .filter { it.isNotEmpty() && it != "-" }
+            .joinToString("\n")
+            .take(MAX_TEXT)
+    }
+
+    private const val DROP = "script, style, noscript, template, iframe, svg, nav, footer, header"
 }
 
 // Finds the first web address in what the user wrote.
