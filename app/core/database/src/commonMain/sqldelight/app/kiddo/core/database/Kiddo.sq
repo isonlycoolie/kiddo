@@ -1,0 +1,93 @@
+-- Columns ending in _sealed hold values encrypted with the hardware-held field key; the rest are not personal.
+
+CREATE TABLE workspace (
+    id TEXT NOT NULL PRIMARY KEY,
+    name_sealed TEXT NOT NULL,
+    email_sealed TEXT NOT NULL,
+    profile_sealed TEXT,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE setting (
+    workspace_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    PRIMARY KEY (workspace_id, key)
+);
+
+CREATE TABLE provider_account (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    base_url TEXT NOT NULL,
+    model TEXT NOT NULL,
+    key_ref TEXT NOT NULL,
+    tokens_used INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE chat (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    title_sealed TEXT NOT NULL,
+    provider_account_id TEXT,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE message (
+    id TEXT NOT NULL PRIMARY KEY,
+    chat_id TEXT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    text_sealed TEXT NOT NULL,
+    failed INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'Text',
+    payload_sealed TEXT
+);
+
+CREATE INDEX message_chat ON message(chat_id, created_at);
+
+CREATE TABLE cv (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    name_sealed TEXT NOT NULL,
+    format TEXT NOT NULL,
+    pages INTEGER NOT NULL,
+    text_sealed TEXT,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    by_kiddo INTEGER NOT NULL DEFAULT 0,
+    added_at INTEGER NOT NULL
+);
+
+CREATE TABLE mail_account (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    address_sealed TEXT NOT NULL,
+    display_name_sealed TEXT NOT NULL,
+    username_sealed TEXT NOT NULL,
+    smtp_sealed TEXT,
+    imap_sealed TEXT,
+    sendly_sealed TEXT,
+    secret_ref TEXT NOT NULL,
+    last_checked_at INTEGER,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE application (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    role_sealed TEXT NOT NULL,
+    company_sealed TEXT NOT NULL,
+    to_sealed TEXT NOT NULL,
+    status TEXT NOT NULL,
+    chat_id TEXT,
+    message_id_sealed TEXT,
+    cv_name_sealed TEXT,
+    follow_ups INTEGER NOT NULL DEFAULT 0,
+    reply_sealed TEXT,
+    reply_at INTEGER,
+    sent_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
