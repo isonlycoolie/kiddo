@@ -163,3 +163,34 @@ fun ThinkingDot(modifier: Modifier = Modifier) {
     )
 }
 
+// A setup step: a dotted circle while it's to do, a green tick once done.
+@Composable
+fun SetupStep(title: String, body: String, done: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier.fillMaxWidth().pressable(onClick, pressedAlpha = 0.6f).padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        if (done) Tick(size = 26.dp) else TodoCircle()
+        Column(Modifier.weight(1f)) {
+            BasicText(title, style = Kiddo.type.bodyStrong.copy(color = if (done) Kiddo.colors.muted else Kiddo.colors.fg, fontWeight = FontWeight.Medium))
+            BasicText(body, style = Kiddo.type.sub.copy(color = Kiddo.colors.muted))
+        }
+        if (!done) KiddoIcon(KiddoGlyph.Chevron, null, size = 18.dp, tint = Kiddo.colors.faint)
+    }
+}
+
+@Composable
+fun Starter(title: String, sub: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier.border(1.dp, Kiddo.colors.line, RoundedCornerShape(16.dp))
+            .pressable(onClick, pressedScale = 0.97f)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        BasicText(title, style = Kiddo.type.button.copy(color = Kiddo.colors.fg, fontWeight = FontWeight.SemiBold))
+        BasicText(sub, style = Kiddo.type.sub.copy(color = Kiddo.colors.muted))
+    }
+}
+
+private const val DISABLED = 0.6f
+private const val MAX_LINES = 6
