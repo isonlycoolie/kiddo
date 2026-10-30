@@ -289,3 +289,32 @@ INSERT INTO application(id, workspace_id, role_sealed, company_sealed, to_sealed
     follow_ups, reply_sealed, reply_at, sent_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+restoreNotice:
+INSERT INTO notice(id, workspace_id, kind, application_id, body_sealed, read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+wipeWorkspace:
+DELETE FROM workspace;
+
+wipeSettings:
+DELETE FROM setting;
+
+wipeProviders:
+DELETE FROM provider_account;
+
+wipeChats:
+DELETE FROM chat;
+
+wipeMessages:
+DELETE FROM message;
+
+wipeCvs:
+DELETE FROM cv;
+
+wipeMail:
+DELETE FROM mail_account;
+
+wipeApplications:
+DELETE FROM application;
+
+wipeNotices:
+DELETE FROM notice;
