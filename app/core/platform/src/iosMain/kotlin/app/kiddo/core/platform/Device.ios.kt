@@ -71,3 +71,41 @@ private suspend fun readText(view: WKWebView): String = withContext(Dispatchers.
     }
 }
 
+// Local notifications only: Kiddo has no server to push from.
+class IosNotifier : Notifier {
+    private val center get() = UNUserNotificationCenter.currentNotificationCenter()
+
+    override fun show(id: Int, title: String, body: String) = post("$KEY$id", title, body, null)
+
+    override fun remind(id: Int, title: String, body: String, at: Long?) {
+        val key = "$KEY$id"
+        center.removePendingNotificationRequestsWithIdentifiers(listOf(key))
+        val seconds = at?.let { (it - NSDate().timeIntervalSince1970.toLong() * 1000) / 1000.0 } ?: return
+        // Already due: the next check adds it to Updates instead.
+        if (seconds < 1.0) return
+        post(key, title, body, UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(seconds, repeats = false))
+    }
+
+    private fun post(key: String, title: String, body: String, trigger: UNNotificationTrigger?) {
+        val content = UNMutableNotificationContent()
+        content.setTitle(title)
+        content.setBody(body)
+        content.setSound(UNNotificationSound.defaultSound)
+        center.addNotificationRequest(UNNotificationRequest.requestWithIdentifier(key, content, trigger), withCompletionHandler = null)
+    }
+
+    private companion object {
+        const val KEY = "kiddo."
+    }
+}
+
+// The system asks once; after that iOS remembers the answer and this does nothing visible.
+@Composable
+actual fun rememberNotificationAsk(): () -> Unit = remember {
+    {
+        UNUserNotificationCenter.currentNotificationCenter()
+            .requestAuthorizationWithOptions(UNAuthorizationOptionAlert or UNAuthorizationOptionSound) { _, _ -> }
+    }
+}
+
+private const val MAX_PAGE = 100_000
