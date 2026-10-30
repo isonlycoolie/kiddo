@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_followups">Follow-ups</string>
+    <string name="settings_backup">Backup</string>
+    <string name="backup_title">Backup</string>
+    <string name="backup_sub">Kiddo has no cloud.\nKeep a locked copy somewhere safe.</string>
+    <string name="backup_keys">Include keys and passwords</string>
+    <string name="backup_keys_note">Anyone with the file and passphrase could use them.</string>
+    <string name="backup_passphrase">Passphrase</string>
+    <string name="backup_passphrase_note">At least 8 characters. Needed to restore; it can\'t be recovered.</string>
+    <string name="backup_export">Export backup</string>
+    <string name="backup_restore">Restore from a backup</string>
+    <string name="backup_saved">Backup saved</string>
+    <string name="backup_not_saved">Backup not saved</string>
+    <string name="backup_restore_title">Restore this backup?</string>
+    <string name="backup_restore_body">Everything in Kiddo now is replaced by the backup. Enter its passphrase.</string>
+    <string name="backup_restore_go">Restore</string>
+    <string name="backup_restored">Restored</string>
+    <string name="backup_wrong">Wrong passphrase, or not a Kiddo backup.</string>
+</resources>

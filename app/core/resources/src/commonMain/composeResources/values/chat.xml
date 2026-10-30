@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_title">Kiddo</string>
+    <string name="chat_profile">Profile</string>
+    <string name="chat_models">Model</string>
+    <string name="chat_greeting">What job are we\ngoing for?</string>
+    <string name="chat_ready_title">Hi %1$s.\nLet\'s get you ready.</string>
+    <string name="chat_ready_note">About three minutes. Everything stays on this phone.</string>
+    <string name="setup_ai">Connect an AI model</string>
+    <string name="setup_ai_body">Use your own key from any provider</string>
+    <string name="setup_mail">Connect your email</string>
+    <string name="setup_mail_body">So Kiddo can send and read replies</string>
+    <string name="setup_cv">Add your CV</string>
+    <string name="setup_cv_body">A PDF or Word file</string>
+    <string name="composer_hint">Tell Kiddo about a job</string>
+    <string name="composer_reply">Reply to Kiddo</string>
+    <string name="composer_needs_model">Connect a model to start</string>
+    <string name="composer_send">Send</string>
+    <string name="composer_stop">Stop</string>
+    <string name="starter_post">Paste a job post</string>
+    <string name="starter_post_sub">From WhatsApp or anywhere</string>
+    <string name="starter_post_text">Here is a job post. Help me apply for it:\n\n</string>
+    <string name="starter_cv">Make my CV better</string>
+    <string name="starter_cv_sub">Clean and professional</string>
+    <string name="starter_cv_text">Look at my CV and tell me what to fix first so it reads clean and professional.</string>
+    <string name="starter_email">Write a cover email</string>
+    <string name="starter_email_sub">Short and warm</string>
+    <string name="starter_email_text">Write a short cover email for a job I\'m applying to. Ask me what you need.</string>
+    <string name="chat_failed">That didn\'t go through.</string>
+    <string name="chat_retry">Try again</string>
+    <string name="menu_new_chat">New chat</string>
+    <string name="menu_applications">Applications</string>
+    <string name="menu_updates">Updates</string>
+    <string name="menu_cvs">CVs</string>
+    <string name="menu_history">History</string>
+    <string name="menu_recent">Recent</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_close">Close menu</string>
+</resources>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_show">Show</string>
+    <string name="action_hide">Hide</string>
+    <string name="action_menu">Menu</string>
+    <string name="action_more">More</string>
+    <string name="action_add">Add</string>
+    <string name="action_save">Save</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_open">Open</string>
+    <string name="failure_wrong_key">That key didn't work. Check it and try again.</string>
+    <string name="failure_no_credit">This account has no credit left.</string>
+    <string name="failure_rate">Too many tries. Wait a minute and try again.</string>
+    <string name="failure_cant_reach">Can't reach it. Check your connection or the address.</string>
+    <string name="failure_not_found">That address or model wasn't found.</string>
+    <string name="failure_bad_input">It refused the request. Check the details.</string>
+    <string name="failure_app_password">Google wants an app password. Create one, then paste it here.</string>
+    <string name="failure_wrong_password">That password didn't work. Make a new one and paste it.</string>
+    <string name="failure_imap_off">Turn on IMAP in your Gmail settings so Kiddo can see replies.</string>
+    <string name="failure_tls">This server needs a secure connection. Check the port and security.</string>
+    <string name="failure_too_large">That file is too large.</string>
+    <string name="failure_unreadable">Kiddo couldn't read that file.</string>
+    <string name="failure_unknown">Something went wrong. Try again.</string>
+</resources>
