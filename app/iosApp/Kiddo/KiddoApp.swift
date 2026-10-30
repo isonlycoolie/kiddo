@@ -96,3 +96,67 @@ private struct ComposeHost: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIViewController, context: Context) {}
 }
 
+// Holds the Compose controller plus one invisible scroll view: UIKit sends a status bar tap to the scroll view that
+// has scrollsToTop on, and this one hands it to Kotlin, which scrolls the page on screen. It also lays a plain cover
+// over Kiddo while the app switcher takes its snapshot, when the user asked for that.
+final class HostController: UIViewController, UIScrollViewDelegate {
+    private var compose: UIViewController?
+    private let statusBarTap = UIScrollView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+    private let cover = UIView()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        statusBarTap.scrollsToTop = true
+        statusBarTap.contentSize = CGSize(width: 1, height: 2)
+        statusBarTap.contentOffset = CGPoint(x: 0, y: 1)
+        statusBarTap.delegate = self
+        view.addSubview(statusBarTap)
+        cover.backgroundColor = .systemBackground
+        cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        attach(MainViewControllerKt.MainViewController())
+
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(leaving), name: UIApplication.willResignActiveNotification, object: nil)
+        center.addObserver(self, selector: #selector(back), name: UIApplication.didBecomeActiveNotification, object: nil)
+        center.addObserver(self, selector: #selector(background), name: UIApplication.didEnterBackgroundNotification, object: nil)
+    }
+
+    // A new root after Erase everything: the old screens go with the old app graph.
+    func reload() {
+        if let old = compose {
+            old.willMove(toParent: nil)
+            old.view.removeFromSuperview()
+            old.removeFromParent()
+        }
+        attach(MainViewControllerKt.MainViewController())
+    }
+
+    private func attach(_ controller: UIViewController) {
+        addChild(controller)
+        controller.view.frame = view.bounds
+        controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(controller.view)
+        controller.didMove(toParent: self)
+        compose = controller
+    }
+
+    @objc private func leaving() {
+        guard MainViewControllerKt.hidesInSwitcher() else { return }
+        cover.frame = view.bounds
+        view.addSubview(cover)
+    }
+
+    @objc private func back() {
+        cover.removeFromSuperview()
+    }
+
+    @objc private func background() {
+        InboxTask.schedule()
+    }
+
+    func scrollViewShouldScrollToTop(_ scrollView: UIScrollView) -> Bool {
+        MainViewControllerKt.onStatusBarTap()
+        return false
+    }
+}
