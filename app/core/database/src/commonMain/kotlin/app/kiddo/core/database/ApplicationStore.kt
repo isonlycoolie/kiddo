@@ -77,3 +77,26 @@ class ApplicationStore(private val s: Storage) {
     }
 }
 
+// Updates: replies found, follow-ups due, sends, inbox problems.
+class NoticeStore(private val s: Storage) {
+    fun notices(workspaceId: String): Flow<List<Notice>> =
+        s.q.noticesFor(workspaceId).asFlow().mapToList(s.io).map { rows -> rows.mapNotNull { it.toModel() } }
+
+    suspend fun all(workspaceId: String): List<Notice> =
+        withContext(s.io) { s.q.noticesFor(workspaceId).executeAsList().mapNotNull { it.toModel() } }
+
+    suspend fun add(workspaceId: String, kind: NoticeKind, applicationId: String?, body: String) = withContext(s.io) {
+        s.q.insertNotice(s.ids.next(), workspaceId, kind.name, applicationId, s.cipher.seal(body), s.clock.now())
+    }
+
+    suspend fun read(id: String) = withContext(s.io) { s.q.markNoticeRead(id) }
+
+    suspend fun readAll(workspaceId: String) = withContext(s.io) { s.q.markNoticesRead(workspaceId) }
+
+    suspend fun clear(applicationId: String, kind: NoticeKind) = withContext(s.io) { s.q.deleteNoticesFor(applicationId, kind.name) }
+
+    private fun app.kiddo.core.database.Notice.toModel(): Notice? {
+        val known = NoticeKind.entries.firstOrNull { it.name == kind } ?: return null
+        return Notice(id, known, application_id, s.cipher.openOrEmpty(body_sealed), read == 1L, created_at)
+    }
+}
