@@ -43,3 +43,81 @@ import org.jetbrains.compose.resources.stringResource
 
 enum class FieldKind { Text, Email, Url, Number, Secret }
 
+// Field: a label over a grey well that holds the value. Secrets are masked with a show/hide eye and never learned by
+// the keyboard. An error line replaces the note in red.
+@Composable
+fun Field(
+    value: String,
+    onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    placeholder: String = "",
+    kind: FieldKind = FieldKind.Text,
+    note: String? = null,
+    error: String? = null,
+    lead: (@Composable () -> Unit)? = null,
+    end: (@Composable () -> Unit)? = null,
+    singleLine: Boolean = true,
+) {
+    val colors = Kiddo.colors
+    var shown by remember { mutableStateOf(false) }
+    Column(modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 14.dp)) {
+        label?.let {
+            BasicText(it, style = Kiddo.type.label.copy(color = colors.muted), modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+        }
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 50.dp).background(colors.well, RoundedCornerShape(14.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            lead?.let {
+                it()
+                Box(Modifier.size(10.dp))
+            }
+            Box(Modifier.weight(1f)) {
+                if (value.isEmpty()) BasicText(placeholder, style = Kiddo.type.body.copy(color = colors.muted), maxLines = 1)
+                BasicTextField(
+                    value = value,
+                    onValueChange = onChange,
+                    singleLine = singleLine,
+                    textStyle = Kiddo.type.body.copy(color = colors.fg),
+                    cursorBrush = SolidColor(colors.fg),
+                    visualTransformation = if (kind == FieldKind.Secret && !shown) PasswordVisualTransformation() else VisualTransformation.None,
+                    keyboardOptions = keyboard(kind),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (kind == FieldKind.Secret && value.isNotEmpty()) {
+                val label = stringResource(if (shown) Res.string.action_hide else Res.string.action_show)
+                KiddoIcon(
+                    if (shown) KiddoGlyph.Hide else KiddoGlyph.View,
+                    label,
+                    Modifier.padding(start = 8.dp).pressable({ shown = !shown }, pressedAlpha = 0.5f, label = label),
+                    size = 20.dp,
+                    tint = colors.muted,
+                )
+            }
+            end?.let {
+                Box(Modifier.size(8.dp))
+                it()
+            }
+        }
+        val line = error ?: note
+        if (line != null) {
+            BasicText(
+                line,
+                style = Kiddo.type.small.copy(color = if (error != null) colors.danger else colors.muted),
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp),
+            )
+        }
+    }
+}
+
+private fun keyboard(kind: FieldKind) = when (kind) {
+    FieldKind.Text -> KeyboardOptions(imeAction = ImeAction.Next)
+    FieldKind.Email -> KeyboardOptions(keyboardType = KeyboardType.Email, autoCorrectEnabled = false, imeAction = ImeAction.Next)
+    FieldKind.Url -> KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false, imeAction = ImeAction.Next)
+    FieldKind.Number -> KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+    FieldKind.Secret -> KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Done)
+}
+
