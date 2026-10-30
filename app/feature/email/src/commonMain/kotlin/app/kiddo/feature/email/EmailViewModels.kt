@@ -87,3 +87,75 @@ class EmailViewModel(
         account(MailKind.Sendly, f.sendlyFrom, ws, f.sendlyFrom, null, null, SendlyConfig(SendlyTransport.DEFAULT_BASE), ref)
     }
 
+    fun recheck() {
+        val acc = account.value ?: return
+        viewModelScope.launch {
+            val secret = vault.secrets.get(acc.secretRef).orEmpty()
+            when (val result = transport.check(acc, secret)) {
+                is Outcome.Done -> {
+                    _check.value = result.value
+                    mail.markChecked(acc.id)
+                }
+                is Outcome.Failed -> _form.update { it.copy(failure = result.reason) }
+            }
+        }
+    }
+
+    fun sendTest(subject: String, body: String, onDone: (Failure?) -> Unit) {
+        val acc = account.value ?: return
+        viewModelScope.launch {
+            val secret = vault.secrets.get(acc.secretRef).orEmpty()
+            val mailOut = OutgoingMail(acc.address, acc.displayName, listOf(acc.address), subject, body)
+            onDone((transport.send(acc, secret, mailOut) as? Outcome.Failed)?.reason)
+        }
+    }
+
+    fun disconnect(onDone: () -> Unit) {
+        val acc = account.value ?: return
+        viewModelScope.launch {
+            mail.delete(acc.id)
+            vault.secrets.remove(acc.secretRef)
+            onDone()
+        }
+    }
+
+    private fun account(
+        kind: MailKind,
+        address: String,
+        name: String,
+        username: String,
+        smtp: MailServer?,
+        imap: MailServer?,
+        sendly: SendlyConfig?,
+        ref: String,
+    ) = MailAccount(ids.next(), kind, address.trim(), name, username.trim(), smtp, imap, sendly, ref, clock.now(), clock.now())
+
+    private fun connect(onDone: () -> Unit, gmail: Boolean = false, build: (ConnectForm, String, String) -> MailAccount) {
+        val f = _form.value
+        if (f.testing) return
+        _form.update { it.copy(testing = true, failure = null) }
+        viewModelScope.launch {
+            val ws = workspaces.current() ?: return@launch
+            // Gmail shows app passwords in groups of four; the spaces are not part of it. Other passwords stay as typed.
+            val secret = if (gmail) f.secret.replace(" ", "") else f.secret
+            val ref = "mail.${ids.next()}"
+            val acc = build(f, ref, ws.name)
+            when (val result = transport.check(acc, secret)) {
+                is Outcome.Failed -> _form.update { it.copy(testing = false, failure = result.reason) }
+                is Outcome.Done -> {
+                    vault.secrets.put(ref, secret)
+                    account.value?.let { old -> vault.secrets.remove(old.secretRef) }
+                    mail.replace(ws.id, acc)
+                    _check.value = result.value
+                    _form.value = ConnectForm()
+                    onDone()
+                }
+            }
+        }
+    }
+
+    private companion object {
+        const val STOP_AFTER = 5_000L
+        const val IMAP_PORT = 993
+    }
+}
