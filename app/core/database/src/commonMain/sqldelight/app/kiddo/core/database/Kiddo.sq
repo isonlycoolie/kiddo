@@ -91,3 +91,103 @@ CREATE TABLE application (
     updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE notice (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    application_id TEXT,
+    body_sealed TEXT NOT NULL,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+
+-- Workspace
+
+workspaceFirst:
+SELECT * FROM workspace ORDER BY created_at LIMIT 1;
+
+insertWorkspace:
+INSERT INTO workspace(id, name_sealed, email_sealed, profile_sealed, created_at) VALUES (?, ?, ?, NULL, ?);
+
+updateWorkspace:
+UPDATE workspace SET name_sealed = ?, email_sealed = ?, profile_sealed = ? WHERE id = ?;
+
+-- Settings
+
+settingsFor:
+SELECT key, value FROM setting WHERE workspace_id = ?;
+
+putSetting:
+INSERT OR REPLACE INTO setting(workspace_id, key, value) VALUES (?, ?, ?);
+
+-- AI providers
+
+providersFor:
+SELECT * FROM provider_account WHERE workspace_id = ? ORDER BY created_at;
+
+insertProvider:
+INSERT INTO provider_account(id, workspace_id, provider, base_url, model, key_ref, tokens_used, created_at)
+VALUES (?, ?, ?, ?, ?, ?, 0, ?);
+
+updateProvider:
+UPDATE provider_account SET base_url = ?, model = ? WHERE id = ?;
+
+addTokens:
+UPDATE provider_account SET tokens_used = tokens_used + ? WHERE id = ?;
+
+deleteProvider:
+DELETE FROM provider_account WHERE id = ?;
+
+-- Chats
+
+chatsFor:
+SELECT * FROM chat WHERE workspace_id = ? ORDER BY updated_at DESC;
+
+chatById:
+SELECT * FROM chat WHERE id = ?;
+
+insertChat:
+INSERT INTO chat(id, workspace_id, title_sealed, provider_account_id, updated_at) VALUES (?, ?, ?, ?, ?);
+
+touchChat:
+UPDATE chat SET updated_at = ?, provider_account_id = ? WHERE id = ?;
+
+deleteChat:
+DELETE FROM chat WHERE id = ?;
+
+deleteMessagesFor:
+DELETE FROM message WHERE chat_id = ?;
+
+messagesFor:
+SELECT * FROM message WHERE chat_id = ? ORDER BY created_at;
+
+insertMessage:
+INSERT INTO message(id, chat_id, role, text_sealed, failed, created_at, kind, payload_sealed) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updatePayload:
+UPDATE message SET payload_sealed = ? WHERE id = ?;
+
+messageById:
+SELECT * FROM message WHERE id = ?;
+
+updateMessage:
+UPDATE message SET text_sealed = ?, failed = ? WHERE id = ?;
+
+-- CVs
+
+cvsFor:
+SELECT * FROM cv WHERE workspace_id = ? ORDER BY is_default DESC, added_at DESC;
+
+insertCv:
+INSERT INTO cv(id, workspace_id, name_sealed, format, pages, text_sealed, is_default, by_kiddo, added_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+renameCv:
+UPDATE cv SET name_sealed = ? WHERE id = ?;
+
+clearDefaultCv:
+UPDATE cv SET is_default = 0 WHERE workspace_id = ?;
+
+setDefaultCv:
+UPDATE cv SET is_default = 1 WHERE id = ?;
+
