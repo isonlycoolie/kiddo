@@ -150,3 +150,14 @@ class IosCvRenderer : CvRenderer {
         }
     }
 
+    private companion object {
+        const val WIDTH = 595.0
+        const val HEIGHT = 842.0
+        const val MARGIN = 48.0
+        const val CONTENT = WIDTH - 2 * MARGIN
+        const val LEADING = 1.38
+        val INK: UIColor = UIColor.colorWithRed(17 / 255.0, 17 / 255.0, 17 / 255.0, 1.0)
+        val GREY: UIColor = UIColor.colorWithRed(110 / 255.0, 110 / 255.0, 110 / 255.0, 1.0)
+        val RULE: UIColor = UIColor.colorWithRed(220 / 255.0, 220 / 255.0, 220 / 255.0, 1.0)
+    }
+}
