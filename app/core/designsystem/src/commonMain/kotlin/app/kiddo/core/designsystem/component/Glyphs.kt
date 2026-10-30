@@ -66,3 +66,71 @@ private fun glyphVector(glyph: KiddoGlyph, stroke: Float): ImageVector {
     return builder.build()
 }
 
+// A brand logo in its own colours; one-colour marks take the text colour so they read in light and dark.
+@Composable
+fun BrandLogoImage(logo: BrandLogo, size: Dp, modifier: Modifier = Modifier, label: String? = null) {
+    val tint = Kiddo.colors.fg
+    val paths = remember(logo) {
+        logo.paths.map { part ->
+            PathParser().parsePathString(part.pathData).toPath().apply {
+                fillType = if (part.evenOdd) PathFillType.EvenOdd else PathFillType.NonZero
+            } to part.fill
+        }
+    }
+    val described = if (label != null) Modifier.semantics { contentDescription = label } else Modifier
+    Canvas(modifier.then(described).size(size, size * (logo.height / logo.width))) {
+        val k = this.size.width / logo.width
+        scale(k, k, pivot = Offset.Zero) {
+            translate(-logo.x, -logo.y) {
+                paths.forEach { (path, fill) ->
+                    when (fill) {
+                        LogoFill.Tint -> drawPath(path, tint)
+                        is LogoFill.Solid -> drawPath(path, Color(fill.argb))
+                        is LogoFill.Linear -> drawPath(
+                            path,
+                            Brush.linearGradient(
+                                colorStops = fill.stops.map { (at, argb) -> at to Color(argb) }.toTypedArray(),
+                                start = Offset(fill.x1, fill.y1),
+                                end = Offset(fill.x2, fill.y2),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Every logo sits on the same rounded grey tile, so a list of brands lines up like an app list.
+@Composable
+fun LogoTile(modifier: Modifier = Modifier, size: Dp = 36.dp, content: @Composable () -> Unit) {
+    Box(
+        modifier.size(size).background(Kiddo.colors.well, RoundedCornerShape(size * 0.28f)),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
+@Composable
+fun ProviderLogo(provider: AiProvider, modifier: Modifier = Modifier, size: Dp = 36.dp) {
+    LogoTile(modifier, size) {
+        val logo = providerLogo(provider)
+        if (logo == null) {
+            KiddoIcon(app.kiddo.core.resources.generated.KiddoGlyph.Globe, null, size = size * 0.56f)
+        } else {
+            BrandLogoImage(logo, size * 0.56f)
+        }
+    }
+}
+
+fun providerLogo(provider: AiProvider): BrandLogo? = when (provider) {
+    AiProvider.Anthropic -> BrandLogo.Claude
+    AiProvider.OpenAi -> BrandLogo.Openai
+    AiProvider.Gemini -> BrandLogo.Gemini
+    AiProvider.DeepSeek -> BrandLogo.Deepseek
+    AiProvider.Mistral -> BrandLogo.Mistral
+    AiProvider.XAi -> BrandLogo.Grok
+    AiProvider.Groq -> BrandLogo.Groq
+    AiProvider.OpenRouter -> BrandLogo.Openrouter
+    AiProvider.Ollama -> BrandLogo.Ollama
+    AiProvider.Other -> null
+}
