@@ -91,3 +91,58 @@ class AddActions(
     val onRemove: () -> Unit,
 )
 
+@Composable
+fun AddScreen(state: AddState, actions: AddActions, modifier: Modifier = Modifier) {
+    val editing = state.editing != null
+    KiddoScreen(
+        modifier,
+        header = { NavBar(onBack = actions.onBack) },
+        footer = { Primary(stringResource(Res.string.ai_test_save), actions.onSave, enabled = state.canTest, busy = state.testing) },
+    ) {
+        Title(
+            stringResource(if (editing) Res.string.ai_edit_title else Res.string.ai_add_title),
+            sub = stringResource(Res.string.ai_add_sub),
+        )
+        PickerField(
+            state.provider.label,
+            if (editing) null else actions.onPickProvider,
+            label = stringResource(Res.string.ai_provider),
+            lead = { ProviderLogo(state.provider, size = 28.dp) },
+        )
+        if (state.provider.needsKey) {
+            Field(
+                state.key,
+                actions.onKey,
+                label = stringResource(Res.string.ai_key),
+                kind = FieldKind.Secret,
+                placeholder = if (editing) stringResource(Res.string.ai_key_saved) else "",
+                note = stringResource(Res.string.ai_key_from, state.provider.keyPage),
+                error = state.failure?.let { stringResource(it.message()) },
+            )
+        }
+        if (state.showsAddress) {
+            Field(
+                state.baseUrl,
+                actions.onBaseUrl,
+                label = stringResource(Res.string.ai_address),
+                kind = FieldKind.Url,
+                note = stringResource(Res.string.ai_address_note),
+                error = state.failure?.takeIf { !state.provider.needsKey }?.let { stringResource(it.message()) },
+            )
+        }
+        Field(
+            state.model,
+            actions.onModel,
+            label = stringResource(Res.string.ai_model),
+            placeholder = stringResource(Res.string.ai_model_pick),
+            end = { KiddoIcon(KiddoGlyph.Down, stringResource(Res.string.ai_model), Modifier.pressable(actions.onPickModel), size = 18.dp) },
+        )
+        if (state.provider != AiProvider.Other && state.provider != AiProvider.Ollama) {
+            Note(stringResource(Res.string.ai_sealed, state.provider.label))
+        }
+        if (editing) TextAction(stringResource(Res.string.ai_remove), actions.onRemove, danger = true)
+    }
+}
+
+// 41200 -> "41,200".
+internal fun formatCount(n: Long): String = n.toString().reversed().chunked(3).joinToString(",").reversed()
