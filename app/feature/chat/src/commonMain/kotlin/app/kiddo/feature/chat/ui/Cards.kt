@@ -189,3 +189,52 @@ fun DraftCardView(id: String, draft: DraftCard, actions: CardActions, modifier: 
     }
 }
 
+@Composable
+private fun HeaderLine(name: String, value: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        BasicText(name, style = Kiddo.type.sub.copy(color = Kiddo.colors.muted), modifier = Modifier.width(56.dp))
+        BasicText(value, style = Kiddo.type.sub.copy(color = Kiddo.colors.fg), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+fun BlockedView(url: String, actions: CardActions, modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Pill(stringResource(Res.string.blocked_open), { actions.onOpenBrowser(url) }, glyph = KiddoGlyph.Globe)
+        Pill(stringResource(Res.string.blocked_paste), actions.onPaste, outline = true)
+    }
+}
+
+// A CV Kiddo made: the new page fills the card, a dark fade at the foot keeps the name and buttons readable.
+@Composable
+fun CvBuiltView(id: String, card: CvBuiltCard, actions: CardActions, modifier: Modifier = Modifier) {
+    var pdf by remember(card) { mutableStateOf<ByteArray?>(null) }
+    LaunchedEffect(card) { pdf = actions.renderCv(card) }
+    Box(modifier.fillMaxWidth().height(320.dp).clip(RoundedCornerShape(20.dp)).border(1.dp, Kiddo.colors.line, RoundedCornerShape(20.dp))) {
+        pdf?.let { CvPage(it, CvFormat.Pdf, null, Modifier.fillMaxWidth()) }
+        Column(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f), Color.Black.copy(alpha = 0.95f))))
+                .padding(start = 16.dp, end = 16.dp, top = 96.dp, bottom = 16.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                GlowSpark(16.dp)
+                BasicText(stringResource(Res.string.cvcard_by), style = Kiddo.type.label.copy(color = Color.White.copy(alpha = 0.75f)))
+            }
+            BasicText(card.cv.name, style = Kiddo.type.bodyStrong.copy(color = Color.White), modifier = Modifier.padding(top = 2.dp))
+            BasicText(stringResource(Res.string.cvcard_template), style = Kiddo.type.sub.copy(color = Color.White.copy(alpha = 0.7f)))
+            Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val saved = card.savedCvId
+                val label = stringResource(if (saved != null) Res.string.cvcard_open else Res.string.cvcard_save)
+                Box(
+                    Modifier.weight(1f).height(36.dp).background(Color.White, CircleShape)
+                        .pressable({ if (saved != null) actions.onOpenCv(saved) else actions.onSaveCv(id) }, pressedScale = 0.98f),
+                    contentAlignment = Alignment.Center,
+                ) { BasicText(label, style = Kiddo.type.button.copy(color = Color.Black, fontWeight = FontWeight.SemiBold)) }
+            }
+        }
+    }
+}
+
+private const val REQUIREMENTS = 4
+private const val PREVIEW_LINES = 5
