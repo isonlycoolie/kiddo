@@ -82,3 +82,52 @@ actual fun rememberFileSaver(onDone: (Boolean) -> Unit): (fileName: String, byte
     }
 }
 
+@OptIn(ExperimentalForeignApi::class)
+private fun readCv(url: NSURL): PickResult {
+    try {
+        val format = when (url.pathExtension?.lowercase()) {
+            "pdf" -> CvFormat.Pdf
+            "docx" -> CvFormat.Docx
+            else -> return PickResult.Unsupported
+        }
+        val size = (url.path?.let { NSFileManager.defaultManager.attributesOfItemAtPath(it, error = null) }?.get(NSFileSize) as? NSNumber)?.longValue ?: 0L
+        if (size > MAX_CV_BYTES) return PickResult.TooLarge
+        val bytes = NSData.dataWithContentsOfURL(url)?.toByteArray() ?: return PickResult.Unsupported
+        if (bytes.size > MAX_CV_BYTES) return PickResult.TooLarge
+        val name = url.lastPathComponent?.substringBeforeLast('.') ?: "CV"
+        return PickResult.Picked(PickedFile(name, format, bytes))
+    } finally {
+        remove(url)
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun remove(url: NSURL) {
+    NSFileManager.defaultManager.removeItemAtURL(url, error = null)
+}
+
+private fun present(picker: UIDocumentPickerViewController, delegate: PickerDelegate) {
+    picker.delegate = delegate
+    topController()?.presentViewController(picker, animated = true, completion = null)
+}
+
+// Calls back with the chosen file, or null when the user cancels.
+private class PickerDelegate(private val onPicked: (NSURL?) -> Unit) : NSObject(), UIDocumentPickerDelegateProtocol {
+    override fun documentPicker(controller: UIDocumentPickerViewController, didPickDocumentsAtURLs: List<*>) {
+        onPicked(didPickDocumentsAtURLs.firstOrNull() as? NSURL)
+    }
+
+    override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+        onPicked(null)
+    }
+}
+
+// The controller on top of everything, so system sheets present over the Compose host and anything it shows.
+internal fun topController(): UIViewController? {
+    @Suppress("DEPRECATION")
+    var top = UIApplication.sharedApplication.keyWindow?.rootViewController
+    while (top?.presentedViewController != null) top = top.presentedViewController
+    return top
+}
+
+private const val DOCX = "org.openxmlformats.wordprocessingml.document"
