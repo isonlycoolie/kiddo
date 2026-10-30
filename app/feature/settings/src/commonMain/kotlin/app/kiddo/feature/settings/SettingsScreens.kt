@@ -156,3 +156,51 @@ fun SecurityScreen(state: SettingsState, actions: SecurityActions, modifier: Mod
     }
 }
 
+@Composable
+fun AboutScreen(info: AppInfo, onBack: () -> Unit, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier) {
+        KiddoScreen(
+            header = { NavBar(onBack = onBack) },
+            footer = { MadeBy(info, onOpen) },
+        ) {
+            Column(Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp, bottom = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+                    Mark(size = 40.dp)
+                    Box(Modifier.padding(start = 10.dp)) { Wordmark() }
+                }
+                BasicText(stringResource(Res.string.about_version, info.version), style = Kiddo.type.sub.copy(color = Kiddo.colors.muted), modifier = Modifier.padding(top = 10.dp))
+                BasicText(stringResource(Res.string.about_body), style = Kiddo.type.note.copy(color = Kiddo.colors.fg, textAlign = TextAlign.Center), modifier = Modifier.padding(top = 14.dp))
+            }
+            Group {
+                ListRow(stringResource(Res.string.about_source), glyph = KiddoGlyph.Github, external = true, onClick = { onOpen(info.sourceUrl) })
+                Hairline()
+                ListRow(stringResource(Res.string.about_licence), glyph = KiddoGlyph.File, value = "Apache-2.0")
+            }
+        }
+        // The glow sits over the top of the screen, above the header, so nothing cuts it.
+        Glow(Modifier.align(Alignment.TopCenter).offset(y = (-150).dp), size = 300.dp)
+    }
+}
+
+// The footer credit: only the name is a link.
+@Composable
+private fun MadeBy(info: AppInfo, onOpen: (String) -> Unit) {
+    val muted = Kiddo.colors.muted
+    val fg = Kiddo.colors.fg
+    val madeBy = stringResource(Res.string.about_made_by)
+    androidx.compose.foundation.layout.Row(
+        Modifier.fillMaxWidth().padding(bottom = 4.dp),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+    ) {
+        BasicText("$madeBy ", style = Kiddo.type.sub.copy(color = muted))
+        BasicText(
+            info.author,
+            style = Kiddo.type.sub.copy(
+                color = fg,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+            ),
+            modifier = Modifier.pressable({ onOpen(info.authorUrl) }, pressedAlpha = 0.5f, role = androidx.compose.ui.semantics.Role.Button),
+        )
+    }
+}
