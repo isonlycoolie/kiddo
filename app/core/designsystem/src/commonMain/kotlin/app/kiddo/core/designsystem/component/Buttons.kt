@@ -97,3 +97,30 @@ fun Pill(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, outli
     }
 }
 
+// A quiet text action under a Primary ("Not now").
+@Composable
+fun TextAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, danger: Boolean = false) {
+    Box(modifier.fillMaxWidth().height(48.dp).pressable(onClick, pressedAlpha = 0.5f), contentAlignment = Alignment.Center) {
+        BasicText(
+            text,
+            style = Kiddo.type.bodyStrong.copy(color = if (danger) Kiddo.colors.danger else Kiddo.colors.fg),
+        )
+    }
+}
+
+// The glow sparkle: Kiddo's own work.
+@Composable
+fun GlowSpark(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    val c = Kiddo.colors
+    Box(
+        modifier.size(size).background(Brush.linearGradient(listOf(c.glowA, c.glowB, c.glowC)), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) { KiddoIcon(KiddoGlyph.Sparkles, null, size = size * 0.62f, stroke = 2f, tint = Color.White) }
+}
+
+@Composable
+fun ButtonRow(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Row(modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { content() }
+}
+
+private const val DISABLED = 0.3f
