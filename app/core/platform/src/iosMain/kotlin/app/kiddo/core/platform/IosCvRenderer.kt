@@ -55,3 +55,98 @@ class IosCvRenderer : CvRenderer {
         Muted(9.5, false, grey = true),
     }
 
+    private class Pen(private val context: UIGraphicsPDFRendererContext) {
+        private var y = MARGIN
+
+        init {
+            context.beginPage()
+        }
+
+        private fun font(style: Style) = if (style.bold) UIFont.boldSystemFontOfSize(style.size) else UIFont.systemFontOfSize(style.size)
+
+        private fun attrs(style: Style): Map<Any?, Any?> =
+            mapOf(NSFontAttributeName to font(style), NSForegroundColorAttributeName to if (style.grey) GREY else INK)
+
+        @Suppress("CAST_NEVER_SUCCEEDS")
+        private fun width(text: String, style: Style): Double = (text as NSString).sizeWithAttributes(attrs(style)).useContents { width }
+
+        // Text is placed by its baseline, as on Android; UIKit draws from the top of the line box.
+        @Suppress("CAST_NEVER_SUCCEEDS")
+        private fun draw(text: String, style: Style, x: Double, baseline: Double) {
+            (text as NSString).drawAtPoint(CGPointMake(x, baseline - font(style).ascender), withAttributes = attrs(style))
+        }
+
+        private fun room(height: Double) {
+            if (y + height <= HEIGHT - MARGIN) return
+            context.beginPage()
+            y = MARGIN
+        }
+
+        fun gap(points: Double) {
+            y += points
+        }
+
+        fun text(text: String, style: Style, gapAfter: Double = 3.0, indent: Double = 0.0) {
+            wrap(text, style, CONTENT - indent).forEach { line ->
+                room(style.size * LEADING)
+                y += style.size * LEADING
+                draw(line, style, MARGIN + indent, y - style.size * 0.3)
+            }
+            y += gapAfter
+        }
+
+        fun titleWithDates(title: String, dates: String) {
+            room(Style.ItemTitle.size * LEADING)
+            y += Style.ItemTitle.size * LEADING
+            val base = y - Style.ItemTitle.size * 0.3
+            val datesWidth = width(dates, Style.Muted)
+            draw(ellipsize(title, Style.ItemTitle, CONTENT - datesWidth - 12.0), Style.ItemTitle, MARGIN, base)
+            draw(dates, Style.Muted, WIDTH - MARGIN - datesWidth, base)
+            y += 2.0
+        }
+
+        fun bullet(text: String) {
+            room(Style.Body.size * LEADING)
+            val cy = y + Style.Body.size * LEADING - Style.Body.size * 0.62
+            INK.setFill()
+            UIBezierPath.bezierPathWithOvalInRect(CGRectMake(MARGIN + 3.0 - 1.4, cy - 1.4, 2.8, 2.8)).fill()
+            text(text, Style.Body, gapAfter = 1.5, indent = 12.0)
+        }
+
+        fun rule() {
+            y += 6.0
+            val line = UIBezierPath()
+            line.moveToPoint(CGPointMake(MARGIN, y))
+            line.addLineToPoint(CGPointMake(WIDTH - MARGIN, y))
+            line.lineWidth = 0.6
+            RULE.setStroke()
+            line.stroke()
+            y += 12.0
+        }
+
+        private fun wrap(text: String, style: Style, limit: Double): List<String> {
+            val lines = mutableListOf<String>()
+            text.split('\n').forEach { para ->
+                var line = ""
+                para.split(' ').filter { it.isNotEmpty() }.forEach { word ->
+                    val tryLine = if (line.isEmpty()) word else "$line $word"
+                    if (width(tryLine, style) <= limit) {
+                        line = tryLine
+                    } else {
+                        if (line.isNotEmpty()) lines += line
+                        line = word
+                    }
+                }
+                lines += line
+            }
+            return lines
+        }
+
+        private fun ellipsize(text: String, style: Style, limit: Double): String {
+            if (width(text, style) <= limit) return text
+            var cut = text
+            while (cut.isNotEmpty() && width("$cut…", style) > limit) cut = cut.dropLast(1)
+            return "$cut…"
+        }
+    }
+
