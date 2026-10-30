@@ -94,3 +94,82 @@ fun NavGraphBuilder.historyScreens(nav: NavController) {
     }
 }
 
+@Composable
+private fun DeleteRow(onDelete: () -> Unit) {
+    SheetRow(stringResource(Res.string.history_delete), onDelete, glyph = KiddoGlyph.Trash, danger = true)
+}
+
+@Composable
+fun HistoryScreen(
+    chats: List<Chat>?,
+    today: Long,
+    onBack: () -> Unit,
+    onOpen: (String) -> Unit,
+    onMore: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    KiddoScreen(modifier, header = { NavBar(title = stringResource(Res.string.history_title), onBack = onBack) }) {
+        if (chats == null) return@KiddoScreen
+        if (chats.isEmpty()) {
+            Empty(KiddoGlyph.Clock, stringResource(Res.string.history_empty), body = stringResource(Res.string.history_empty_body))
+            return@KiddoScreen
+        }
+        Search(query, { query = it })
+        val shown = chats.filter { query.isBlank() || it.title.contains(query.trim(), ignoreCase = true) }
+        shown.groupBy { group(localDay(it.updatedAt), today) }.toSortedMap(compareBy { it.ordinal }).forEach { (day, items) ->
+            BasicText(
+                stringResource(day.label),
+                style = Kiddo.type.label.copy(color = Kiddo.colors.muted),
+                modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 4.dp),
+            )
+            items.forEach { chat -> ChatLine(chat, { onOpen(chat.id) }, { onMore(chat.id) }) }
+        }
+    }
+}
+
+@Composable
+private fun Search(query: String, onQuery: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 42.dp).background(Kiddo.colors.well, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        KiddoIcon(KiddoGlyph.Search, null, size = 18.dp, tint = Kiddo.colors.muted)
+        Box(Modifier.weight(1f)) {
+            if (query.isEmpty()) BasicText(stringResource(Res.string.history_search), style = Kiddo.type.body.copy(color = Kiddo.colors.muted))
+            BasicTextField(query, onQuery, singleLine = true, textStyle = Kiddo.type.body.copy(color = Kiddo.colors.fg), cursorBrush = SolidColor(Kiddo.colors.fg), modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun ChatLine(chat: Chat, onOpen: () -> Unit, onMore: () -> Unit) {
+    Row(Modifier.fillMaxWidth().pressable(onOpen, pressedAlpha = 0.6f).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        BasicText(
+            chat.title,
+            style = Kiddo.type.body.copy(color = Kiddo.colors.fg),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).padding(vertical = 12.dp),
+        )
+        Box(Modifier.pressable(onMore, pressedAlpha = 0.5f, label = stringResource(Res.string.action_more)).padding(12.dp)) {
+            KiddoIcon(KiddoGlyph.More, null, size = 20.dp, tint = Kiddo.colors.muted)
+        }
+    }
+}
+
+private enum class Day(val label: StringResource) {
+    Today(Res.string.history_today),
+    Yesterday(Res.string.history_yesterday),
+    Earlier(Res.string.history_earlier),
+}
+
+private fun group(day: Long, today: Long) = when (day) {
+    today -> Day.Today
+    today - 1 -> Day.Yesterday
+    else -> Day.Earlier
+}
+
+private const val STOP_AFTER = 5_000L
