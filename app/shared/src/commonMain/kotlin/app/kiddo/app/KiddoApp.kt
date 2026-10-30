@@ -88,3 +88,56 @@ class ShellViewModel(
     }
 }
 
+@Composable
+fun KiddoApp(shell: ShellViewModel = koinViewModel()) {
+    val settings by shell.settings.collectAsStateWithLifecycle()
+    val locked by shell.locked.collectAsStateWithLifecycle()
+    val s = settings ?: return
+    LaunchedEffect(s) { shell.settle(s) }
+    LockOnLeave(shell, s)
+    HideFromSwitcher(s.hideInSwitcher)
+    val dark = when (s.appearance) {
+        Appearance.System -> isSystemInDarkTheme()
+        Appearance.Light -> false
+        Appearance.Dark -> true
+    }
+    val reduced = rememberReducedMotion()
+    KiddoTheme(dark = dark, reducedMotion = reduced) {
+        OverlayHost {
+            val nav = rememberNavController()
+            val t = ScreenTransitions(reduced, followsFinger = platformFeel.backFollowsFinger)
+            NavHost(nav, startDestination = Route.Splash, enterTransition = t.enter, exitTransition = t.exit, popEnterTransition = t.popEnter, popExitTransition = t.popExit) {
+                onboardingScreens(nav)
+                chatScreens(nav)
+                historyScreens(nav)
+                cvsScreens(nav)
+                profileScreens(nav)
+                settingsScreens(nav)
+                modelsScreens(nav)
+                emailScreens(nav)
+                applicationsScreens(nav)
+                backupScreens(nav)
+            }
+            if (locked == true) LockScreen(onUnlocked = shell::unlocked)
+        }
+    }
+}
+
+@Composable
+private fun LockOnLeave(shell: ShellViewModel, s: AppSettings) {
+    val owner = LocalLifecycleOwner.current
+    DisposableEffect(owner, s) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> shell.left()
+                Lifecycle.Event.ON_START -> {
+                    shell.returned(s)
+                    shell.checkInbox()
+                }
+                else -> Unit
+            }
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+}
