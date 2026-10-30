@@ -91,3 +91,28 @@ fun NavGraphBuilder.settingsScreens(nav: NavController) {
     }
 }
 
+private fun Overlay.appearanceSheet(title: String, current: Appearance, onPick: (Appearance) -> Unit) = sheet(title) {
+    SheetGroup {
+        Appearance.entries.forEach { a ->
+            SheetRow(stringResource(appearanceLabel(a)), { onPick(a).also { close() } }, picked = a == current)
+        }
+    }
+}
+
+private fun Overlay.lockAfterSheet(title: String, current: LockAfter, onPick: (LockAfter) -> Unit) = sheet(title) {
+    SheetGroup {
+        LockAfter.entries.forEach { a ->
+            SheetRow(stringResource(lockAfterLabel(a)), { onPick(a).also { close() } }, picked = a == current)
+        }
+    }
+}
+
+private fun Overlay.eraseSheet(title: String, onErase: () -> Unit) = sheet(title) {
+    SheetText(stringResource(Res.string.erase_body))
+    EraseButton(onErase)
+}
+
+@Composable
+private fun EraseButton(onErase: () -> Unit) {
+    Primary(stringResource(Res.string.settings_erase), onErase, danger = true)
+}
