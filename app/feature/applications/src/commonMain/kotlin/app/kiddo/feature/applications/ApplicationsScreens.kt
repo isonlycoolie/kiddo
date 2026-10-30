@@ -96,3 +96,59 @@ fun StatusPill(status: AppStatus, modifier: Modifier = Modifier) {
     )
 }
 
+private enum class Filter(val label: StringResource, val keep: (AppStatus) -> Boolean) {
+    All(Res.string.apps_all, { true }),
+    Waiting(Res.string.apps_waiting, { it == AppStatus.Sent || it == AppStatus.AppliedOnSite }),
+    Replied(Res.string.apps_replied, { it == AppStatus.Replied || it == AppStatus.Interview }),
+    Closed(Res.string.apps_closed, { it == AppStatus.Closed }),
+}
+
+@Composable
+fun ApplicationsScreen(list: List<Application>?, onBack: () -> Unit, onOpen: (String) -> Unit, onStart: () -> Unit, modifier: Modifier = Modifier) {
+    var filter by rememberSaveable { mutableStateOf(Filter.All) }
+    KiddoScreen(modifier, header = { NavBar(title = stringResource(Res.string.apps_title), onBack = onBack) }) {
+        if (list == null) return@KiddoScreen
+        if (list.isEmpty()) {
+            Empty(KiddoGlyph.Briefcase, stringResource(Res.string.apps_empty), body = stringResource(Res.string.apps_empty_body)) {
+                Pill(stringResource(Res.string.apps_start_chat), onStart)
+            }
+            return@KiddoScreen
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Filter.entries.forEach { f ->
+                val on = f == filter
+                BasicText(
+                    stringResource(f.label),
+                    style = Kiddo.type.button.copy(color = if (on) Kiddo.colors.bg else Kiddo.colors.fg),
+                    modifier = Modifier.background(if (on) Kiddo.colors.fg else Kiddo.colors.well, CircleShape)
+                        .pressable({ filter = f }, pressedScale = 0.97f).padding(horizontal = 14.dp, vertical = 8.dp),
+                )
+            }
+        }
+        list.filter { filter.keep(it.status) }.forEach { app ->
+            Row(
+                Modifier.fillMaxWidth().pressable({ onOpen(app.id) }, pressedAlpha = 0.6f).padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                CompanyTile(app.company.ifBlank { app.to })
+                Column(Modifier.weight(1f)) {
+                    BasicText(app.role.ifBlank { app.to }, style = Kiddo.type.row.copy(color = Kiddo.colors.fg), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    BasicText("${app.company} · ${shortDate(app.sentAt)}", style = Kiddo.type.sub.copy(color = Kiddo.colors.muted), maxLines = 1)
+                }
+                StatusPill(app.status)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompanyTile(name: String, size: Int = 44) {
+    val initials = name.split(' ', '.', '@').filter { it.isNotBlank() }.take(2).joinToString("") { it.take(1).uppercase() }
+    Box(Modifier.size(size.dp).background(Kiddo.colors.well, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+        BasicText(initials, style = Kiddo.type.button.copy(color = Kiddo.colors.fg, fontWeight = FontWeight.SemiBold))
+    }
+}
+
+class ApplicationActions(val onBack: () -> Unit, val onMore: () -> Unit, val onOpenChat: (String) -> Unit, val onFollowUp: () -> Unit)
+
