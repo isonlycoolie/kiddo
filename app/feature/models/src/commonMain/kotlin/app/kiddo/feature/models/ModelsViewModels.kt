@@ -56,3 +56,90 @@ data class AddState(
         !testing && baseUrl.isNotBlank() && (!provider.needsKey || key.isNotBlank() || editing != null)
 }
 
+class AddViewModel(
+    private val workspaces: WorkspaceStore,
+    private val providers: ProviderStore,
+    private val settings: SettingsStore,
+    private val vault: Vault,
+    private val ai: AiClient,
+    private val ids: Ids,
+) : ViewModel() {
+    private val _state = MutableStateFlow(AddState())
+    val state: StateFlow<AddState> = _state
+
+    fun load(accountId: String?) {
+        if (accountId == null || _state.value.editing?.id == accountId) return
+        viewModelScope.launch {
+            val ws = workspaces.current() ?: return@launch
+            val account = providers.accounts(ws.id).first().firstOrNull { it.id == accountId } ?: return@launch
+            _state.value = AddState(account.provider, "", account.baseUrl, account.model, editing = account)
+        }
+    }
+
+    fun provider(p: AiProvider) = _state.update { AddState(provider = p, baseUrl = p.baseUrl, editing = it.editing) }
+
+    fun key(value: String) = _state.update { it.copy(key = value.trim(), failure = null) }
+
+    fun baseUrl(value: String) = _state.update { it.copy(baseUrl = value.trim(), failure = null) }
+
+    fun model(value: String) = _state.update { it.copy(model = value) }
+
+    // Lists the models with the key: proves the key works without spending tokens, and fills the model picker.
+    fun testAndSave(onSaved: () -> Unit) {
+        val now = _state.value
+        if (!now.canTest) return
+        _state.update { it.copy(testing = true, failure = null) }
+        viewModelScope.launch {
+            val key = now.key.ifBlank { now.editing?.keyRef?.let(vault.secrets::get).orEmpty() }
+            when (val found = ai.models(AiTarget(now.provider, now.baseUrl, now.model, key))) {
+                is Outcome.Failed -> _state.update { it.copy(testing = false, failure = found.reason) }
+                is Outcome.Done -> {
+                    val model = now.model.ifBlank { pickDefault(now.provider, found.value) }
+                    if (model.isBlank()) {
+                        _state.update { it.copy(testing = false, models = found.value, failure = Failure.NotFound) }
+                    } else {
+                        save(now, key, model)
+                        onSaved()
+                    }
+                }
+            }
+        }
+    }
+
+    fun refreshModels() {
+        val now = _state.value
+        viewModelScope.launch {
+            val key = now.key.ifBlank { now.editing?.keyRef?.let(vault.secrets::get).orEmpty() }
+            val found = ai.models(AiTarget(now.provider, now.baseUrl, now.model, key))
+            _state.update {
+                when (found) {
+                    is Outcome.Done -> it.copy(models = found.value, failure = null)
+                    is Outcome.Failed -> it.copy(failure = found.reason)
+                }
+            }
+        }
+    }
+
+    fun remove(onDone: () -> Unit) {
+        val account = _state.value.editing ?: return
+        viewModelScope.launch {
+            providers.delete(account.id)
+            vault.secrets.remove(account.keyRef)
+            onDone()
+        }
+    }
+
+    private suspend fun save(now: AddState, key: String, model: String) {
+        val ws = workspaces.current() ?: return
+        val editing = now.editing
+        if (editing != null) {
+            if (now.key.isNotBlank()) vault.secrets.put(editing.keyRef, key)
+            providers.update(editing.id, now.baseUrl, model)
+            return
+        }
+        val keyRef = "ai.${ids.next()}"
+        vault.secrets.put(keyRef, key)
+        val id = providers.add(ws.id, now.provider, now.baseUrl, model, keyRef)
+        settings.update(ws.id) { if (it.chatModel == null) it.copy(chatModel = id) else it }
+    }
+
