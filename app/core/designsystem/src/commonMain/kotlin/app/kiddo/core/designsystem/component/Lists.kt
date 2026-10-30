@@ -94,3 +94,92 @@ fun Group(modifier: Modifier = Modifier, title: String? = null, note: String? = 
     }
 }
 
+@Composable
+fun Hairline(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().padding(horizontal = 14.dp).height(0.5.dp).background(Kiddo.colors.line))
+}
+
+// Note: one quiet line with a glyph. Lock and shield notes promise safety, so their glyph is green.
+@Composable
+fun Note(text: String, modifier: Modifier = Modifier, glyph: KiddoGlyph = KiddoGlyph.Lock) {
+    val safe = glyph == KiddoGlyph.Lock || glyph == KiddoGlyph.Shield
+    Row(modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        KiddoIcon(glyph, null, Modifier.padding(top = 1.dp), size = 17.dp, tint = if (safe) Kiddo.colors.ok else Kiddo.colors.muted)
+        BasicText(text, style = Kiddo.type.sub.copy(color = Kiddo.colors.muted))
+    }
+}
+
+// Info: a read-only detail, its name small above the value.
+@Composable
+fun Info(name: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)) {
+        BasicText(name, style = Kiddo.type.small.copy(color = Kiddo.colors.muted))
+        BasicText(value.ifEmpty { "-" }, style = Kiddo.type.body.copy(color = Kiddo.colors.fg), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+// Tick: the green done badge. TodoCircle: the dotted circle for something still to do.
+@Composable
+fun Tick(modifier: Modifier = Modifier, size: Dp = 20.dp) {
+    Box(modifier.size(size).background(Kiddo.colors.ok, CircleShape), contentAlignment = Alignment.Center) {
+        KiddoIcon(KiddoGlyph.Check, null, size = size * 0.62f, stroke = 2.6f, tint = Color.White)
+    }
+}
+
+@Composable
+fun TodoCircle(modifier: Modifier = Modifier, size: Dp = 26.dp) {
+    val faint = Kiddo.colors.faint
+    Canvas(modifier.size(size)) {
+        val w = 2.dp.toPx()
+        drawCircle(faint, radius = (this.size.minDimension - w) / 2, style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 4f))))
+    }
+}
+
+// Avatar: a person glyph on the well grey until the user adds a photo. A red dot when something needs them.
+@Composable
+fun Avatar(modifier: Modifier = Modifier, size: Dp = 32.dp, dot: Boolean = false) {
+    Box(modifier.size(size)) {
+        Box(Modifier.size(size).background(Kiddo.colors.well, CircleShape), contentAlignment = Alignment.Center) {
+            KiddoIcon(KiddoGlyph.User, null, size = size * 0.56f)
+        }
+        if (dot) {
+            Box(
+                Modifier.align(Alignment.TopEnd).size(10.dp).background(Kiddo.colors.bg, CircleShape).padding(2.dp)
+                    .background(Kiddo.colors.danger, CircleShape),
+            )
+        }
+    }
+}
+
+// Empty: one glyph in a soft circle, a bold line, a grey line, and an optional action under them.
+@Composable
+fun Empty(glyph: KiddoGlyph, title: String, modifier: Modifier = Modifier, body: String? = null, action: (@Composable () -> Unit)? = null) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(64.dp).background(Kiddo.colors.well, CircleShape), contentAlignment = Alignment.Center) {
+            KiddoIcon(glyph, null, size = 28.dp)
+        }
+        BasicText(title, style = Kiddo.type.heading.copy(color = Kiddo.colors.fg, textAlign = TextAlign.Center), modifier = Modifier.padding(top = 18.dp))
+        body?.let { BasicText(it, style = Kiddo.type.body.copy(color = Kiddo.colors.muted, textAlign = TextAlign.Center), modifier = Modifier.padding(top = 6.dp)) }
+        action?.let {
+            Spacer(Modifier.height(22.dp))
+            it()
+        }
+    }
+}
+
+// Spinner: a ring that turns while something runs.
+@Composable
+fun Spinner(modifier: Modifier = Modifier, size: Dp = 18.dp, color: Color = Kiddo.colors.fg) {
+    val turn by rememberInfiniteTransition(label = "spin").animateFloat(
+        0f,
+        360f,
+        infiniteRepeatable(KiddoMotion.tween(KiddoMotion.SPIN, LinearEasing), RepeatMode.Restart),
+        label = "turn",
+    )
+    val track = Kiddo.colors.faint
+    Canvas(modifier.size(size).graphicsLayer { rotationZ = turn }) {
+        val w = 2.dp.toPx()
+        drawCircle(track, radius = (this.size.minDimension - w) / 2, style = Stroke(w))
+        drawArc(color, -90f, 90f, false, Offset(w / 2, w / 2), this.size.copy(this.size.width - w, this.size.height - w), style = Stroke(w, cap = StrokeCap.Round))
+    }
+}
