@@ -191,3 +191,101 @@ UPDATE cv SET is_default = 0 WHERE workspace_id = ?;
 setDefaultCv:
 UPDATE cv SET is_default = 1 WHERE id = ?;
 
+deleteCv:
+DELETE FROM cv WHERE id = ?;
+
+-- Mail
+
+mailAccountsFor:
+SELECT * FROM mail_account WHERE workspace_id = ? ORDER BY created_at DESC;
+
+insertMailAccount:
+INSERT INTO mail_account(id, workspace_id, kind, address_sealed, display_name_sealed, username_sealed, smtp_sealed, imap_sealed, sendly_sealed,
+    secret_ref, last_checked_at, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+markMailChecked:
+UPDATE mail_account SET last_checked_at = ? WHERE id = ?;
+
+deleteMailAccount:
+DELETE FROM mail_account WHERE id = ?;
+
+deleteMailAccountsFor:
+DELETE FROM mail_account WHERE workspace_id = ?;
+
+-- Applications
+
+applicationsFor:
+SELECT * FROM application WHERE workspace_id = ? ORDER BY sent_at DESC;
+
+applicationById:
+SELECT * FROM application WHERE id = ?;
+
+insertApplication:
+INSERT INTO application(id, workspace_id, role_sealed, company_sealed, to_sealed, status, chat_id, message_id_sealed, cv_name_sealed,
+    follow_ups, reply_sealed, reply_at, sent_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?);
+
+setApplicationStatus:
+UPDATE application SET status = ?, updated_at = ? WHERE id = ?;
+
+setApplicationReply:
+UPDATE application SET status = ?, reply_sealed = ?, reply_at = ?, updated_at = ? WHERE id = ?;
+
+countFollowUp:
+UPDATE application SET follow_ups = follow_ups + 1, updated_at = ? WHERE id = ?;
+
+deleteApplication:
+DELETE FROM application WHERE id = ?;
+
+-- Notices (Updates)
+
+noticesFor:
+SELECT * FROM notice WHERE workspace_id = ? ORDER BY created_at DESC;
+
+insertNotice:
+INSERT INTO notice(id, workspace_id, kind, application_id, body_sealed, read, created_at) VALUES (?, ?, ?, ?, ?, 0, ?);
+
+markNoticeRead:
+UPDATE notice SET read = 1 WHERE id = ?;
+
+markNoticesRead:
+UPDATE notice SET read = 1 WHERE workspace_id = ?;
+
+deleteNoticesFor:
+DELETE FROM notice WHERE application_id = ? AND kind = ?;
+
+-- Backup and restore
+
+allProviders:
+SELECT * FROM provider_account;
+
+allSettings:
+SELECT * FROM setting;
+
+allMessages:
+SELECT * FROM message;
+
+allCvs:
+SELECT * FROM cv;
+
+allMail:
+SELECT * FROM mail_account;
+
+allApplications:
+SELECT * FROM application;
+
+allNotices:
+SELECT * FROM notice;
+
+allChats:
+SELECT * FROM chat;
+
+restoreProvider:
+INSERT INTO provider_account(id, workspace_id, provider, base_url, model, key_ref, tokens_used, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+restoreApplication:
+INSERT INTO application(id, workspace_id, role_sealed, company_sealed, to_sealed, status, chat_id, message_id_sealed, cv_name_sealed,
+    follow_ups, reply_sealed, reply_at, sent_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
