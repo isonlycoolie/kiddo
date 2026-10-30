@@ -83,3 +83,57 @@ fun CvsScreen(
     }
 }
 
+// The card is the page: the first page fills it edge to edge, cut at the bottom.
+@Composable
+private fun CvCard(cv: Cv, bytes: ByteArray?, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.pressable(onOpen, pressedScale = 0.98f)) {
+        Box(Modifier.fillMaxWidth().height(206.dp).clip(RoundedCornerShape(14.dp)).border(1.dp, Kiddo.colors.line, RoundedCornerShape(14.dp))) {
+            if (bytes != null) CvPage(bytes, cv.format, cv.text, Modifier.fillMaxWidth())
+        }
+        BasicText(
+            cv.name,
+            style = Kiddo.type.button.copy(color = Kiddo.colors.fg),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        BasicText(cardLine(cv), style = Kiddo.type.small.copy(color = Kiddo.colors.muted), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun cardLine(cv: Cv): String = listOfNotNull(
+    stringResource(Res.string.cvs_default).takeIf { cv.isDefault },
+    pages(cv.pages),
+    stringResource(Res.string.cvs_by_kiddo).takeIf { cv.byKiddo },
+).joinToString(" · ")
+
+@Composable
+private fun pages(n: Int) = stringResource(if (n == 1) Res.string.cvs_pages else Res.string.cvs_pages_many, n)
+
+@Composable
+fun CvScreen(cv: Cv?, bytes: ByteArray?, onBack: () -> Unit, onMore: () -> Unit, onImprove: () -> Unit, modifier: Modifier = Modifier) {
+    KiddoScreen(
+        modifier,
+        header = {
+            NavBar(title = cv?.name, onBack = onBack) {
+                if (cv != null) IconButton(KiddoGlyph.More, stringResource(Res.string.action_more), onMore)
+            }
+        },
+        footer = { if (cv != null) Primary(stringResource(Res.string.cv_improve), onImprove, kiddo = true) },
+    ) {
+        if (cv == null || bytes == null) return@KiddoScreen
+        Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            repeat(cv.pages.coerceAtLeast(1)) { page ->
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).border(1.dp, Kiddo.colors.line, RoundedCornerShape(18.dp))) {
+                    CvPage(bytes, cv.format, cv.text, Modifier.fillMaxWidth(), page = page)
+                }
+            }
+            val line = listOfNotNull(stringResource(Res.string.cvs_default).takeIf { cv.isDefault }, pages(cv.pages)).joinToString(" · ")
+            BasicText(line, style = Kiddo.type.sub.copy(color = Kiddo.colors.muted, textAlign = TextAlign.Center), modifier = Modifier.fillMaxWidth())
+            if (cv.text == null) {
+                BasicText(stringResource(Res.string.cv_no_text), style = Kiddo.type.sub.copy(color = Kiddo.colors.warn, textAlign = TextAlign.Center), modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
