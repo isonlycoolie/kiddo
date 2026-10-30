@@ -1,0 +1,62 @@
+config:
+  validation: true
+  # The Compose rules read keys their default config doesn't list (allowedCompositionLocals).
+  excludes: 'Compose>.*'
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+  # A component file is named after its composable even when a small enum (its tone or kind) sits beside it.
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  LongParameterList:
+    functionThreshold: 7
+    # Screen action holders bundle a screen's callbacks so the composable itself stays
+    # short; one callback per thing the screen can do.
+    constructorThreshold: 12
+    # Dev fixtures build records from many fields at once.
+    excludes: ['**/debug/**', '**/dev/fakes/**']
+    ignoreAnnotated: ['Composable']
+  # About 50 lines is the signal; stroke and path data are tables, not logic.
+  LongMethod:
+    threshold: 60
+    excludes: ['**/generated/**']
+  # A feature's Api and repository mirror its endpoints one function each; splitting them would scatter one contract.
+  TooManyFunctions:
+    thresholdInInterfaces: 20
+    thresholdInClasses: 20
+    ignorePrivate: true
+    ignoreAnnotatedFunctions: ['Composable', 'Preview']
+
+style:
+  ReturnCount:
+    max: 3
+  MagicNumber:
+    # Sizes, offsets and keyframes ported from the preview live in the design system and in UI drawing code, each
+    # beside the preview source it measures; data and domain code still gets named constants.
+    excludes: ['**/designsystem/**', '**/test/**', '**/*Test.kt', '**/ui/**', '**/debug/**', '**/dev/fakes/**']
+    ignorePropertyDeclaration: true
+    # Enum entries carry data (a later screen's milestone), named by the entry itself.
+    ignoreEnums: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  # iOS compiles every commonMain too, so platform APIs stay in androidMain/iosMain behind expect/actual.
+  ForbiddenImport:
+    active: true
+    imports: ['android.*', 'java.*', 'javax.*']
+    includes: ['**/commonMain/**']
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+
+Compose:
+  ModifierMissing:
+    active: true
+  CompositionLocalAllowlist:
+    active: true
+    allowedCompositionLocals: LocalKiddoColors,LocalKiddoType,LocalReducedMotion,LocalOverlay
+  # Previews are public so the screenshot tests in androidApp render exactly what the IDE shows.
+  PreviewPublic:
+    active: false
