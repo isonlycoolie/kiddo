@@ -1,0 +1,30 @@
+-- Version 1 to 2: chat cards (a kind and a sealed payload per message), applications and updates.
+ALTER TABLE message ADD COLUMN kind TEXT NOT NULL DEFAULT 'Text';
+ALTER TABLE message ADD COLUMN payload_sealed TEXT;
+
+CREATE TABLE application (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    role_sealed TEXT NOT NULL,
+    company_sealed TEXT NOT NULL,
+    to_sealed TEXT NOT NULL,
+    status TEXT NOT NULL,
+    chat_id TEXT,
+    message_id_sealed TEXT,
+    cv_name_sealed TEXT,
+    follow_ups INTEGER NOT NULL DEFAULT 0,
+    reply_sealed TEXT,
+    reply_at INTEGER,
+    sent_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE notice (
+    id TEXT NOT NULL PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    application_id TEXT,
+    body_sealed TEXT NOT NULL,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
