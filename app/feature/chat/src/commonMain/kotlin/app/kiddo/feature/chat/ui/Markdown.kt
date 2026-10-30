@@ -74,3 +74,49 @@ internal enum class InlineMark { Bold, Italic, Code }
 
 internal data class Run(val text: String, val marks: Set<InlineMark>)
 
+// **bold**, *italic* or _italic_, `code`, and [text](link) shown as its text only: links from a model are never tapped.
+internal fun parseInline(text: String): List<Run> {
+    val runs = mutableListOf<Run>()
+    val buf = StringBuilder()
+    var marks = emptySet<InlineMark>()
+    fun cut() {
+        if (buf.isNotEmpty()) runs += Run(buf.toString(), marks)
+        buf.clear()
+    }
+    fun toggle(mark: InlineMark) {
+        cut()
+        marks = if (mark in marks) marks - mark else marks + mark
+    }
+    var i = 0
+    while (i < text.length) {
+        val c = text[i]
+        val inCode = InlineMark.Code in marks
+        when {
+            c == '`' -> toggle(InlineMark.Code).also { i++ }
+            inCode -> buf.append(c).also { i++ }
+            text.startsWith("**", i) || text.startsWith("__", i) -> toggle(InlineMark.Bold).also { i += 2 }
+            (c == '*' || c == '_') && italicEdge(text, i, InlineMark.Italic in marks) -> toggle(InlineMark.Italic).also { i++ }
+            c == '[' -> {
+                val close = text.indexOf("](", i)
+                val end = if (close > 0) text.indexOf(')', close) else -1
+                if (end > 0) {
+                    buf.append(text, i + 1, close)
+                    i = end + 1
+                } else {
+                    buf.append(c)
+                    i++
+                }
+            }
+            else -> buf.append(c).also { i++ }
+        }
+    }
+    cut()
+    return runs
+}
+
+// A lone * or _ opens only before a word and closes only after one, so "5 * 3" and snake_case stay as written.
+private fun italicEdge(text: String, i: Int, open: Boolean): Boolean {
+    val before = text.getOrNull(i - 1)
+    val after = text.getOrNull(i + 1)
+    return if (open) before != null && !before.isWhitespace() else after != null && !after.isWhitespace() && (before == null || !before.isLetterOrDigit())
+}
