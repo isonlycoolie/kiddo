@@ -97,3 +97,36 @@ is ready for its first run on a Mac.
 
 ## Repository layout
 
+```
+app/              Android and iOS app (Kotlin Multiplatform + Compose Multiplatform)
+  shared/         The app above the features, started by both platforms (iOS framework KiddoKit)
+  androidApp/     The Android app
+  iosApp/         The SwiftUI shell, its XcodeGen project and setup-mac.sh
+brand/            Brand assets and the script that renders them
+.github/assets/   README images
+```
+
+## Build
+
+- Android: `cd app && ./gradlew :androidApp:assembleDebug` (JDK 17, Android SDK).
+- iOS, on a Mac with Xcode: `app/iosApp/setup-mac.sh` installs the tools, builds the Kotlin framework, generates the
+  Xcode project and runs Kiddo in a simulator.
+
+## Contributing
+
+Contributions are welcome once the first app code lands. Open an issue first for anything larger than a small fix.
+In short:
+
+- Keep changes focused. Ask in an issue when something is unclear.
+- Secrets go only through the secure storage module. Nothing sends without the user's tap.
+- Black and white first; colour only signals (green done, red missing, amber waiting).
+- Commits are small (at most 100 inserted lines) with short, scoped messages, for example `feat(app): add send sheet`.
+
+Found a security problem? Please report it privately rather than in a public issue.
+
+## Licence
+
+Apache-2.0. Made to share by [isonlycoolie](https://github.com/isonlycoolie).
+
+Inter is by Rasmus Andersson (SIL Open Font License 1.1). AI provider marks are from LobeHub Icons (MIT) and belong to
+their owners.
