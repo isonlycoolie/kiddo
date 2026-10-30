@@ -121,3 +121,57 @@ private fun keyboard(kind: FieldKind) = when (kind) {
     FieldKind.Secret -> KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Done)
 }
 
+// PickerField: looks like a Field but opens a sheet to choose (provider, model, security). Never shows a keyboard.
+@Composable
+fun PickerField(
+    value: String,
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    placeholder: String = "",
+    lead: (@Composable () -> Unit)? = null,
+    note: String? = null,
+) {
+    val colors = Kiddo.colors
+    Column(modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 14.dp)) {
+        label?.let {
+            BasicText(it, style = Kiddo.type.label.copy(color = colors.muted), modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+        }
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 50.dp).background(colors.well, RoundedCornerShape(14.dp))
+                .pressable(onClick, pressedAlpha = 0.7f, role = Role.DropdownList, label = label)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            lead?.let {
+                it()
+                Box(Modifier.size(10.dp))
+            }
+            BasicText(
+                value.ifEmpty { placeholder },
+                style = Kiddo.type.body.copy(color = if (value.isEmpty()) colors.muted else colors.fg),
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            if (onClick != null) KiddoIcon(KiddoGlyph.Down, null, size = 16.dp, tint = colors.muted)
+        }
+        note?.let {
+            BasicText(it, style = Kiddo.type.small.copy(color = colors.muted), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp))
+        }
+    }
+}
+
+// Toggle: on is the foreground colour, like the design; the knob slides.
+@Composable
+fun Toggle(on: Boolean, onChange: (Boolean) -> Unit, label: String, modifier: Modifier = Modifier) {
+    val colors = Kiddo.colors
+    val spec = if (Kiddo.reducedMotion) KiddoMotion.reduced() else KiddoMotion.tween<androidx.compose.ui.unit.Dp>(200, KiddoMotion.Ease)
+    val knob by animateDpAsState(if (on) 20.dp else 0.dp, spec, label = "knob")
+    val track by animateColorAsState(if (on) colors.fg else colors.raised, KiddoMotion.tween<Color>(200, KiddoMotion.Ease), label = "track")
+    Box(modifier.size(50.dp, 30.dp).background(track, CircleShape).pressable({ onChange(!on) }, role = Role.Switch, label = label)) {
+        Box(
+            Modifier.offset(3.dp, 3.dp).graphicsLayer { translationX = knob.toPx() }
+                .shadow(2.dp, CircleShape).size(24.dp).background(colors.bg, CircleShape),
+        )
+    }
+}
