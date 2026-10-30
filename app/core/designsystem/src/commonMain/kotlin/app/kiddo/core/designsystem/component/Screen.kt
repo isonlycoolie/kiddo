@@ -97,3 +97,18 @@ fun NavBar(
     }
 }
 
+// Title: the large heading at the top of a form page, with an optional grey line under it.
+@Composable
+fun Title(text: String, modifier: Modifier = Modifier, sub: String? = null) {
+    Column(modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp)) {
+        BasicText(text, style = Kiddo.type.title.copy(color = Kiddo.colors.fg))
+        if (sub != null) {
+            BasicText(
+                sub,
+                style = Kiddo.type.note.copy(color = Kiddo.colors.muted),
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
