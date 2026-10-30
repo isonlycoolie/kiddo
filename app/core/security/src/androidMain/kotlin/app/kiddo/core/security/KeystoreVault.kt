@@ -94,3 +94,14 @@ class KeystoreVault(private val context: Context) : Vault {
         }
     }
 
+    private companion object {
+        const val PREFS = "kiddo.secrets"
+        const val KEYSTORE = "AndroidKeyStore"
+        const val SECRET_ALIAS = "kiddo.secret.v1"
+        const val FIELD_ALIAS = "kiddo.field.v1"
+        const val TRANSFORM = "AES/GCM/NoPadding"
+        const val IV_BYTES = 12
+        const val TAG_BITS = 128
+        const val KEY_BITS = 256
+    }
+}
