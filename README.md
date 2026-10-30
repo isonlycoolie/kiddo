@@ -43,6 +43,11 @@ Everything runs on your phone. There is no Kiddo account, no cloud and no tracki
     <td align="center"><img src=".github/assets/screens/updates.png" alt="Updates" width="260"><br><sub><b>Updates</b>: replies and follow-ups</sub></td>
     <td align="center"><img src=".github/assets/screens/ai.png" alt="AI models" width="260"><br><sub><b>AI models</b>: bring your own key</sub></td>
   </tr>
+  <tr>
+    <td align="center"><img src=".github/assets/screens/gmail-guide.png" alt="Connect Gmail" width="260"><br><sub><b>Connect Gmail</b>: two quick steps</sub></td>
+    <td align="center"><img src=".github/assets/screens/cvs.png" alt="CVs" width="260"><br><sub><b>CVs</b>: all your CVs in one place</sub></td>
+    <td align="center"><img src=".github/assets/screens/cv.png" alt="CV" width="260"><br><sub><b>CV</b>: improve it with Kiddo</sub></td>
+  </tr>
 </table>
 
 ## Features
