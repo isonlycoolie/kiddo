@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_email">Email</string>
+    <string name="settings_ai">AI models</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_about">About Kiddo</string>
+    <string name="settings_erase">Erase everything</string>
+    <string name="settings_none">None</string>
+    <string name="settings_lock_on">Lock on</string>
+    <string name="settings_lock_off">Lock off</string>
+    <string name="appearance_system">System</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="erase_title">Erase everything?</string>
+    <string name="erase_body">Your chats, CVs, keys and email connection are deleted from this phone. This can\'t be undone.</string>
+    <string name="security_lock">App lock</string>
+    <string name="security_lock_after">Lock after</string>
+    <string name="lock_after_right_away">Right away</string>
+    <string name="lock_after_one">After 1 minute</string>
+    <string name="lock_after_five">After 5 minutes</string>
+    <string name="security_hide">Hide in app switcher</string>
+    <string name="security_hide_note">Hides Kiddo when you switch apps and blocks screenshots.</string>
+    <string name="security_hide_note_apple">Covers Kiddo when you switch apps.</string>
+    <string name="security_keys">Your keys and passwords</string>
+    <string name="security_sealed">Sealed in secure hardware</string>
+    <string name="security_strongbox">StrongBox chip on this phone</string>
+    <string name="security_tee">Secure area of this phone\'s processor</string>
+    <string name="security_enclave">Secure Enclave on this iPhone</string>
+    <string name="security_keychain">Keychain on this device</string>
+    <string name="security_encrypted">Data encrypted</string>
+    <string name="security_encrypted_sub">Chats, CVs and email settings</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_body">Free and open source, made to share. No servers, no tracking. Everything stays on your phone.</string>
+    <string name="about_source">Source code</string>
+    <string name="about_licence">Licence</string>
+    <string name="about_made_by">Made by</string>
+</resources>
